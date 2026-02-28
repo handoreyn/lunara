@@ -1,8 +1,10 @@
+using Lunara.BuildingBlocks.Outbox;
 using Lunara.Social.Application.DTOs;
 using Lunara.Social.Application.Ports;
 using Lunara.Social.Domain;
 using Lunara.Social.Domain.DomainEvents;
 using Lunara.Social.Domain.Entities;
+using System.Text.Json;
 
 namespace Lunara.Social.Application.UseCases;
 
@@ -14,7 +16,8 @@ public sealed class RecordSwipeService(
     ILikeRepository likeRepository,
     IMatchRepository matchRepository,
     IUnitOfWork unitOfWork,
-    IClock clock)
+    IClock clock,
+    IOutboxWriter outboxWriter)
 {
     /// <summary>
     /// Processes a swipe and returns the outcome.
@@ -58,23 +61,41 @@ public sealed class RecordSwipeService(
             return new RecordSwipeResult(LikeRecorded: false, MatchCreated: false, MatchId: null);
         }
 
+        DateTimeOffset now = clock.UtcNow;
+
         // Check for reciprocal like before persisting.
         bool reciprocal = await likeRepository.ExistsLikeAsync(
             request.TargetId, request.ActorId, ct);
 
         await likeRepository.AddLikeAsync(
-            request.ActorId, request.TargetId, clock.UtcNow, ct);
+            request.ActorId, request.TargetId, now, ct);
 
         if (reciprocal)
         {
             (Match? match, MatchCreated? _) = Match.CreateMatchIfReciprocalLike(
-                request.ActorId, request.TargetId, clock.UtcNow, reciprocalLikeExists: true);
+                request.ActorId, request.TargetId, now, reciprocalLikeExists: true);
 
             // match is never null here because reciprocal=true and actor≠target,
             // but we null-check defensively to keep the compiler happy.
             if (match is not null)
             {
                 await matchRepository.AddAsync(match, ct);
+
+                string payloadJson = JsonSerializer.Serialize(new
+                {
+                    matchId = match.Id.Value,
+                    user1Id = match.User1Id.Value,
+                    user2Id = match.User2Id.Value,
+                    occurredAtUtc = now,
+                });
+
+                await outboxWriter.EnqueueAsync(
+                    "social.match-created.v1",
+                    payloadJson,
+                    now,
+                    request.CorrelationId,
+                    ct);
+
                 await unitOfWork.SaveChangesAsync(ct);
                 return new RecordSwipeResult(LikeRecorded: true, MatchCreated: true, MatchId: match.Id.Value);
             }
