@@ -15,6 +15,8 @@ dotnet build
 dotnet test
 ```
 
+See [docs/local-development.md](docs/local-development.md) for the full local setup guide (infrastructure, migrations, running the API and Worker).
+
 ## Branching Strategy
 
 See [docs/git-flow.md](docs/git-flow.md).
