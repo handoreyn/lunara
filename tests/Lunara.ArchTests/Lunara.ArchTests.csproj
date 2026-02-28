@@ -1,0 +1,68 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <!-- CA1515: test types must be public for xunit v2 runner discovery -->
+    <!-- CA1707: test methods use underscore naming convention (Given_When_Then) -->
+    <NoWarn>$(NoWarn);CA1515;CA1707</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="NetArchTest.Rules" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <!-- Platform projects -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Platform\Lunara.Api\Lunara.Api.csproj" />
+    <ProjectReference Include="..\..\src\Platform\Lunara.Worker\Lunara.Worker.csproj" />
+    <ProjectReference Include="..\..\src\Platform\Lunara.SharedKernel\Lunara.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\src\Platform\Lunara.BuildingBlocks\Lunara.BuildingBlocks.csproj" />
+    <ProjectReference Include="..\..\src\Platform\Lunara.Infrastructure.Host\Lunara.Infrastructure.Host.csproj" />
+  </ItemGroup>
+
+  <!-- Module projects -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Modules\Identity\Lunara.Identity.Domain\Lunara.Identity.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Identity\Lunara.Identity.Application\Lunara.Identity.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Identity\Lunara.Identity.Infrastructure\Lunara.Identity.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Profiles\Lunara.Profiles.Domain\Lunara.Profiles.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Profiles\Lunara.Profiles.Application\Lunara.Profiles.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Profiles\Lunara.Profiles.Infrastructure\Lunara.Profiles.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Discovery\Lunara.Discovery.Domain\Lunara.Discovery.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Discovery\Lunara.Discovery.Application\Lunara.Discovery.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Discovery\Lunara.Discovery.Infrastructure\Lunara.Discovery.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Social\Lunara.Social.Domain\Lunara.Social.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Social\Lunara.Social.Application\Lunara.Social.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Social\Lunara.Social.Infrastructure\Lunara.Social.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Messaging\Lunara.Messaging.Domain\Lunara.Messaging.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Messaging\Lunara.Messaging.Application\Lunara.Messaging.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Messaging\Lunara.Messaging.Infrastructure\Lunara.Messaging.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Media\Lunara.Media.Domain\Lunara.Media.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Media\Lunara.Media.Application\Lunara.Media.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Media\Lunara.Media.Infrastructure\Lunara.Media.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Notifications\Lunara.Notifications.Domain\Lunara.Notifications.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Notifications\Lunara.Notifications.Application\Lunara.Notifications.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Notifications\Lunara.Notifications.Infrastructure\Lunara.Notifications.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Moderation\Lunara.Moderation.Domain\Lunara.Moderation.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Moderation\Lunara.Moderation.Application\Lunara.Moderation.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Moderation\Lunara.Moderation.Infrastructure\Lunara.Moderation.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>
