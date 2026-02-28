@@ -45,7 +45,16 @@ app.MapPost("/v1/social/swipe", async (
         return Results.BadRequest("Invalid action. Must be 'like' or 'pass'.");
     }
 
-    RecordSwipeRequest request = new(new UserId(actorGuid), new UserId(body.TargetUserId), action);
+    string? correlationId = http.Request.Headers["X-Correlation-Id"];
+    if (string.IsNullOrEmpty(correlationId))
+    {
+        correlationId = null;
+    }
+
+    RecordSwipeRequest request = new(new UserId(actorGuid), new UserId(body.TargetUserId), action)
+    {
+        CorrelationId = correlationId,
+    };
     RecordSwipeResult result = await svc.RecordAsync(request, ct);
     return Results.Ok(result);
 });

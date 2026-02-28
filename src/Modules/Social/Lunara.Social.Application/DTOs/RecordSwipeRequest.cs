@@ -10,4 +10,11 @@ namespace Lunara.Social.Application.DTOs;
 public sealed record RecordSwipeRequest(
     UserId ActorId,
     UserId TargetId,
-    SwipeActionType Action);
+    SwipeActionType Action)
+{
+    /// <summary>
+    /// Gets or inits an optional correlation identifier propagated from the HTTP layer
+    /// (e.g. the <c>X-Correlation-Id</c> request header) for distributed tracing.
+    /// </summary>
+    public string? CorrelationId { get; init; }
+}
