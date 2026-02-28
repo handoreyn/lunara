@@ -1,5 +1,7 @@
 using Lunara.BuildingBlocks.Clocks;
+using Lunara.BuildingBlocks.Kafka;
 using Lunara.BuildingBlocks.Outbox;
+using Lunara.Infrastructure.Host.Kafka;
 using Lunara.Infrastructure.Host.Options;
 using Lunara.Infrastructure.Host.Outbox;
 using Lunara.Infrastructure.Host.Persistence;
@@ -22,6 +24,8 @@ public static class PlatformServiceCollectionExtensions
     ///   <item><see cref="IClock"/> implemented by <see cref="SystemClock"/>.</item>
     ///   <item><see cref="LunaraDbContext"/> using the Npgsql provider.</item>
     ///   <item><see cref="IOutboxWriter"/> implemented by <c>EfOutboxWriter</c>.</item>
+    ///   <item><see cref="IOutboxPoller"/> implemented by <c>EfOutboxPoller</c>.</item>
+    ///   <item><see cref="IKafkaProducer"/> implemented by <c>KafkaProducer</c>.</item>
     /// </list>
     /// </summary>
     /// <param name="services">The service collection to configure.</param>
@@ -51,6 +55,10 @@ public static class PlatformServiceCollectionExtensions
 
         // Scoped: depends on the scoped LunaraDbContext.
         services.AddScoped<IOutboxWriter, EfOutboxWriter>();
+        services.AddScoped<IOutboxPoller, EfOutboxPoller>();
+
+        // Singleton: Confluent.Kafka producer is thread-safe and expensive to create.
+        services.AddSingleton<IKafkaProducer, KafkaProducer>();
 
         return services;
     }
