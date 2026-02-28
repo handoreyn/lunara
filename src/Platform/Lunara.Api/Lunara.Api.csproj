@@ -1,6 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <ItemGroup>
+    <!-- Required by EF Core CLI tools when this is the startup project for migrations -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Lunara.Infrastructure.Host\Lunara.Infrastructure.Host.csproj" />
     <ProjectReference Include="..\Lunara.SharedKernel\Lunara.SharedKernel.csproj" />
   </ItemGroup>
