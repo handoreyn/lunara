@@ -7,6 +7,7 @@ using Lunara.Social.Domain.ValueObjects;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddLunaraPlatform(builder.Configuration);
 builder.Services.AddLunaraModules();
 
 WebApplication app = builder.Build();
@@ -17,6 +18,7 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.MapGet("/health", () => Results.Ok());
+app.MapGet("/ready", () => Results.Ok());
 
 app.MapPost("/v1/social/swipe", async (
     HttpContext http,

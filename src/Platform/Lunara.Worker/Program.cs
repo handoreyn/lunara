@@ -3,6 +3,7 @@ using Lunara.Worker;
 
 HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
 
+builder.Services.AddLunaraPlatform(builder.Configuration);
 builder.Services.AddLunaraModules();
 builder.Services.AddHostedService<LunaraWorker>();
 
