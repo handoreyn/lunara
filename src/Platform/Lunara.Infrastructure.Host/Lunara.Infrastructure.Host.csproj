@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Modules\Identity\Lunara.Identity.Application\Lunara.Identity.Application.csproj" />
+    <ProjectReference Include="..\..\Modules\Identity\Lunara.Identity.Infrastructure\Lunara.Identity.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Profiles\Lunara.Profiles.Application\Lunara.Profiles.Application.csproj" />
+    <ProjectReference Include="..\..\Modules\Profiles\Lunara.Profiles.Infrastructure\Lunara.Profiles.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Discovery\Lunara.Discovery.Application\Lunara.Discovery.Application.csproj" />
+    <ProjectReference Include="..\..\Modules\Discovery\Lunara.Discovery.Infrastructure\Lunara.Discovery.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Social\Lunara.Social.Application\Lunara.Social.Application.csproj" />
+    <ProjectReference Include="..\..\Modules\Social\Lunara.Social.Infrastructure\Lunara.Social.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Messaging\Lunara.Messaging.Application\Lunara.Messaging.Application.csproj" />
+    <ProjectReference Include="..\..\Modules\Messaging\Lunara.Messaging.Infrastructure\Lunara.Messaging.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Media\Lunara.Media.Application\Lunara.Media.Application.csproj" />
+    <ProjectReference Include="..\..\Modules\Media\Lunara.Media.Infrastructure\Lunara.Media.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Notifications\Lunara.Notifications.Application\Lunara.Notifications.Application.csproj" />
+    <ProjectReference Include="..\..\Modules\Notifications\Lunara.Notifications.Infrastructure\Lunara.Notifications.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Moderation\Lunara.Moderation.Application\Lunara.Moderation.Application.csproj" />
+    <ProjectReference Include="..\..\Modules\Moderation\Lunara.Moderation.Infrastructure\Lunara.Moderation.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

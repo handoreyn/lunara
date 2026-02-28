@@ -18,6 +18,9 @@
     <!-- Deterministic builds -->
     <Deterministic>true</Deterministic>
 
+    <!-- Required for IDE0005 (remove unused usings) to work on build -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
     <!-- Suppress generated-code warnings from dotnet new templates -->
     <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>

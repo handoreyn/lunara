@@ -9,6 +9,10 @@ trim_trailing_whitespace = true
 
 [*.{cs,csx}]
 indent_size = 4
+
+# Enforce file-scoped namespace style (modern .NET)
+csharp_style_namespace_declarations = file_scoped:error
+
 dotnet_analyzer_diagnostic.severity = error
 
 # CA1: Design
@@ -167,7 +171,7 @@ dotnet_diagnostic.IDE0110.severity = error
 dotnet_diagnostic.IDE0120.severity = error
 dotnet_diagnostic.IDE0130.severity = error
 dotnet_diagnostic.IDE0150.severity = error
-dotnet_diagnostic.IDE0160.severity = error
+dotnet_diagnostic.IDE0160.severity = none
 dotnet_diagnostic.IDE0161.severity = error
 dotnet_diagnostic.IDE0170.severity = error
 dotnet_diagnostic.IDE0180.severity = error
