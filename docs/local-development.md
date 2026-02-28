@@ -58,20 +58,38 @@ These match the defaults in `infra/.env.example`. No changes needed if you used 
 `Lunara.Infrastructure.Host` owns `LunaraDbContext`. `Lunara.Api` is the startup project
 (it hosts `IConfiguration` and the DI container).
 
-```bash
-# Create a new migration (replace <MigrationName> with a descriptive name)
-dotnet ef migrations add <MigrationName> \
-  --project src/Platform/Lunara.Infrastructure.Host \
-  --startup-project src/Platform/Lunara.Api
+### Apply existing migrations (first-time setup)
 
-# Apply migrations to the local database
+Ensure the infra stack is running (Step 1), then:
+
+```bash
 dotnet ef database update \
   --project src/Platform/Lunara.Infrastructure.Host \
   --startup-project src/Platform/Lunara.Api
 ```
 
-> The `ASPNETCORE_ENVIRONMENT=Development` environment variable is picked up automatically
-> by the design-time factory in `LunaraDbContextFactory`, so no extra flags are needed.
+This applies `InitialOutbox` (creates the `OutboxMessages` table with its indexes).
+
+### Add a new migration (when the schema changes)
+
+```bash
+dotnet ef migrations add <MigrationName> \
+  --project src/Platform/Lunara.Infrastructure.Host \
+  --startup-project src/Platform/Lunara.Api
+
+dotnet ef database update \
+  --project src/Platform/Lunara.Infrastructure.Host \
+  --startup-project src/Platform/Lunara.Api
+```
+
+> `ASPNETCORE_ENVIRONMENT=Development` is picked up automatically by the
+> design-time factory in `LunaraDbContextFactory` — no extra flags needed.
+
+### Existing migrations
+
+| Migration | Table(s) created |
+|-----------|-----------------|
+| `InitialOutbox` | `OutboxMessages` (transactional outbox, indexes: `ix_outbox_status_occurred`, `ix_outbox_locked_until`) |
 
 ---
 
