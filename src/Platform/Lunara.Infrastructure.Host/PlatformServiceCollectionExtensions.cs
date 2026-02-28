@@ -1,5 +1,7 @@
 using Lunara.BuildingBlocks.Clocks;
+using Lunara.BuildingBlocks.Outbox;
 using Lunara.Infrastructure.Host.Options;
+using Lunara.Infrastructure.Host.Outbox;
 using Lunara.Infrastructure.Host.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -19,6 +21,7 @@ public static class PlatformServiceCollectionExtensions
     ///   <item><see cref="KafkaOptions"/> bound from <c>appsettings.json</c>.</item>
     ///   <item><see cref="IClock"/> implemented by <see cref="SystemClock"/>.</item>
     ///   <item><see cref="LunaraDbContext"/> using the Npgsql provider.</item>
+    ///   <item><see cref="IOutboxWriter"/> implemented by <c>EfOutboxWriter</c>.</item>
     /// </list>
     /// </summary>
     /// <param name="services">The service collection to configure.</param>
@@ -45,6 +48,9 @@ public static class PlatformServiceCollectionExtensions
             opts.UseNpgsql(
                 connectionString,
                 npgsql => npgsql.MigrationsHistoryTable("__ef_migrations_history")));
+
+        // Scoped: depends on the scoped LunaraDbContext.
+        services.AddScoped<IOutboxWriter, EfOutboxWriter>();
 
         return services;
     }
