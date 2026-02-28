@@ -1,12 +1,14 @@
 using Lunara.BuildingBlocks.Clocks;
 using Lunara.Infrastructure.Host.Options;
+using Lunara.Infrastructure.Host.Persistence;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Lunara.Infrastructure.Host;
 
 /// <summary>
-/// Registers cross-cutting platform services (options, clock) with the dependency injection container.
+/// Registers cross-cutting platform services (options, clock, database) with the dependency injection container.
 /// </summary>
 public static class PlatformServiceCollectionExtensions
 {
@@ -16,6 +18,7 @@ public static class PlatformServiceCollectionExtensions
     ///   <item><see cref="DatabaseOptions"/> bound from <c>appsettings.json</c>.</item>
     ///   <item><see cref="KafkaOptions"/> bound from <c>appsettings.json</c>.</item>
     ///   <item><see cref="IClock"/> implemented by <see cref="SystemClock"/>.</item>
+    ///   <item><see cref="LunaraDbContext"/> using the Npgsql provider.</item>
     /// </list>
     /// </summary>
     /// <param name="services">The service collection to configure.</param>
@@ -33,6 +36,15 @@ public static class PlatformServiceCollectionExtensions
 
         // Singleton: stateless wall-clock implementation.
         services.AddSingleton<IClock, SystemClock>();
+
+        // Postgres via EF Core — connection string read eagerly so misconfiguration fails fast.
+        string connectionString =
+            configuration[$"{DatabaseOptions.SectionKey}:ConnectionString"] ?? string.Empty;
+
+        services.AddDbContext<LunaraDbContext>(opts =>
+            opts.UseNpgsql(
+                connectionString,
+                npgsql => npgsql.MigrationsHistoryTable("__ef_migrations_history")));
 
         return services;
     }
