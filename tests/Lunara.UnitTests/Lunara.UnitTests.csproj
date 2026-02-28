@@ -31,6 +31,7 @@
     <ProjectReference Include="..\..\src\Platform\Lunara.SharedKernel\Lunara.SharedKernel.csproj" />
     <ProjectReference Include="..\..\src\Platform\Lunara.BuildingBlocks\Lunara.BuildingBlocks.csproj" />
     <ProjectReference Include="..\..\src\Modules\Social\Lunara.Social.Domain\Lunara.Social.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Social\Lunara.Social.Application\Lunara.Social.Application.csproj" />
   </ItemGroup>
 
 </Project>

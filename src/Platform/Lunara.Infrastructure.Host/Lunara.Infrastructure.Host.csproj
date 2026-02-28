@@ -1,6 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <PackageReference Include="Confluent.Kafka" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Lunara.BuildingBlocks\Lunara.BuildingBlocks.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\Modules\Identity\Lunara.Identity.Application\Lunara.Identity.Application.csproj" />
     <ProjectReference Include="..\..\Modules\Identity\Lunara.Identity.Infrastructure\Lunara.Identity.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Modules\Profiles\Lunara.Profiles.Application\Lunara.Profiles.Application.csproj" />
@@ -23,6 +36,8 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- CA1812: internal classes instantiated by the DI container at runtime -->
+    <NoWarn>CA1812</NoWarn>
   </PropertyGroup>
 
 </Project>
