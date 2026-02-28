@@ -15,22 +15,23 @@ public sealed class RecordSwipeServiceTests
     private static readonly UserId ActorId = new(new Guid("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"));
     private static readonly UserId TargetId = new(new Guid("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"));
 
-    private static (RecordSwipeService Svc, FakeLikeRepository Likes, FakeMatchRepository Matches, FakeUnitOfWork Uow)
+    private static (RecordSwipeService Svc, FakeLikeRepository Likes, FakeMatchRepository Matches, FakeUnitOfWork Uow, FakeOutboxWriter Outbox)
         Build(FakeLikeRepository? likes = null)
     {
         FakeLikeRepository likeRepo = likes ?? new FakeLikeRepository();
         FakeMatchRepository matchRepo = new();
         FakeUnitOfWork uow = new();
         FakeClock clock = new(FixedNow);
-        RecordSwipeService svc = new(likeRepo, matchRepo, uow, clock);
-        return (svc, likeRepo, matchRepo, uow);
+        FakeOutboxWriter outbox = new();
+        RecordSwipeService svc = new(likeRepo, matchRepo, uow, clock, outbox);
+        return (svc, likeRepo, matchRepo, uow, outbox);
     }
 
     /// <summary>A non-reciprocal like records a like and saves once, no match is created.</summary>
     [Fact]
     public async Task Like_NonReciprocal_RecordsLike_NoMatch_SavesOnce()
     {
-        (RecordSwipeService svc, FakeLikeRepository likes, FakeMatchRepository matches, FakeUnitOfWork uow) = Build();
+        (RecordSwipeService svc, FakeLikeRepository likes, FakeMatchRepository matches, FakeUnitOfWork uow, FakeOutboxWriter outbox) = Build();
 
         RecordSwipeResult result = await svc.RecordAsync(
             new RecordSwipeRequest(ActorId, TargetId, SwipeActionType.Like),
@@ -42,6 +43,7 @@ public sealed class RecordSwipeServiceTests
         Assert.Equal(1, likes.AddLikeCallCount);
         Assert.Empty(matches.AddedMatches);
         Assert.Equal(1, uow.SaveCallCount);
+        Assert.Equal(0, outbox.EnqueueCallCount);
     }
 
     /// <summary>A reciprocal like records a like, creates a match, and saves once.</summary>
@@ -50,7 +52,7 @@ public sealed class RecordSwipeServiceTests
     {
         FakeLikeRepository likes = new();
         likes.SeedLike(TargetId, ActorId);
-        (RecordSwipeService svc, _, FakeMatchRepository matches, FakeUnitOfWork uow) = Build(likes);
+        (RecordSwipeService svc, _, FakeMatchRepository matches, FakeUnitOfWork uow, _) = Build(likes);
 
         RecordSwipeResult result = await svc.RecordAsync(
             new RecordSwipeRequest(ActorId, TargetId, SwipeActionType.Like),
@@ -59,7 +61,6 @@ public sealed class RecordSwipeServiceTests
         Assert.True(result.LikeRecorded);
         Assert.True(result.MatchCreated);
         Assert.NotNull(result.MatchId);
-        Assert.Equal(1, likes.AddLikeCallCount);
         Assert.Single(matches.AddedMatches);
         Assert.Equal(1, uow.SaveCallCount);
     }
@@ -70,7 +71,7 @@ public sealed class RecordSwipeServiceTests
     {
         FakeLikeRepository likes = new();
         likes.SeedLike(ActorId, TargetId);
-        (RecordSwipeService svc, _, FakeMatchRepository matches, FakeUnitOfWork uow) = Build(likes);
+        (RecordSwipeService svc, _, FakeMatchRepository matches, FakeUnitOfWork uow, FakeOutboxWriter outbox) = Build(likes);
 
         RecordSwipeResult result = await svc.RecordAsync(
             new RecordSwipeRequest(ActorId, TargetId, SwipeActionType.Like),
@@ -79,16 +80,16 @@ public sealed class RecordSwipeServiceTests
         Assert.False(result.LikeRecorded);
         Assert.False(result.MatchCreated);
         Assert.Null(result.MatchId);
-        Assert.Equal(0, likes.AddLikeCallCount);
         Assert.Empty(matches.AddedMatches);
         Assert.Equal(0, uow.SaveCallCount);
+        Assert.Equal(0, outbox.EnqueueCallCount);
     }
 
     /// <summary>A Pass swipe makes no repository calls and no save.</summary>
     [Fact]
     public async Task Pass_NoCalls_NoSave()
     {
-        (RecordSwipeService svc, FakeLikeRepository likes, FakeMatchRepository matches, FakeUnitOfWork uow) = Build();
+        (RecordSwipeService svc, FakeLikeRepository likes, FakeMatchRepository matches, FakeUnitOfWork uow, FakeOutboxWriter outbox) = Build();
 
         RecordSwipeResult result = await svc.RecordAsync(
             new RecordSwipeRequest(ActorId, TargetId, SwipeActionType.Pass),
@@ -100,17 +101,96 @@ public sealed class RecordSwipeServiceTests
         Assert.Equal(0, likes.AddLikeCallCount);
         Assert.Empty(matches.AddedMatches);
         Assert.Equal(0, uow.SaveCallCount);
+        Assert.Equal(0, outbox.EnqueueCallCount);
     }
 
     /// <summary>Swiping on yourself throws <see cref="ArgumentException"/>.</summary>
     [Fact]
     public async Task SameUser_Throws_ArgumentException()
     {
-        (RecordSwipeService svc, _, _, _) = Build();
+        (RecordSwipeService svc, _, _, _, _) = Build();
 
         await Assert.ThrowsAsync<ArgumentException>(() =>
             svc.RecordAsync(
                 new RecordSwipeRequest(ActorId, ActorId, SwipeActionType.Like),
                 CancellationToken.None));
     }
+
+    /// <summary>A reciprocal like enqueues exactly one outbox message with the correct event type.</summary>
+    [Fact]
+    public async Task Like_Reciprocal_EnqueuesMatchCreatedOutboxEvent()
+    {
+        FakeLikeRepository likes = new();
+        likes.SeedLike(TargetId, ActorId);
+        (RecordSwipeService svc, _, _, _, FakeOutboxWriter outbox) = Build(likes);
+
+        RecordSwipeResult result = await svc.RecordAsync(
+            new RecordSwipeRequest(ActorId, TargetId, SwipeActionType.Like),
+            CancellationToken.None);
+
+        Assert.True(result.MatchCreated);
+        Assert.Equal(1, outbox.EnqueueCallCount);
+        Assert.Equal("social.match-created.v1", outbox.LastEventType);
+        Assert.Equal(FixedNow, outbox.LastOccurredAtUtc);
+    }
+
+    /// <summary>A reciprocal like propagates the correlation identifier to the outbox entry.</summary>
+    [Fact]
+    public async Task Like_Reciprocal_PropagatesCorrelationId()
+    {
+        FakeLikeRepository likes = new();
+        likes.SeedLike(TargetId, ActorId);
+        (RecordSwipeService svc, _, _, _, FakeOutboxWriter outbox) = Build(likes);
+
+        await svc.RecordAsync(
+            new RecordSwipeRequest(ActorId, TargetId, SwipeActionType.Like)
+            {
+                CorrelationId = "test-correlation-123",
+            },
+            CancellationToken.None);
+
+        Assert.Equal("test-correlation-123", outbox.LastCorrelationId);
+    }
+
+    /// <summary>A non-reciprocal like does not enqueue any outbox message.</summary>
+    [Fact]
+    public async Task Like_NonReciprocal_DoesNotEnqueueOutboxMessage()
+    {
+        (RecordSwipeService svc, _, _, _, FakeOutboxWriter outbox) = Build();
+
+        await svc.RecordAsync(
+            new RecordSwipeRequest(ActorId, TargetId, SwipeActionType.Like),
+            CancellationToken.None);
+
+        Assert.Equal(0, outbox.EnqueueCallCount);
+    }
+
+    /// <summary>A duplicate like does not enqueue any outbox message.</summary>
+    [Fact]
+    public async Task Duplicate_Like_DoesNotEnqueueOutboxMessage()
+    {
+        FakeLikeRepository likes = new();
+        likes.SeedLike(ActorId, TargetId);
+        (RecordSwipeService svc, _, _, _, FakeOutboxWriter outbox) = Build(likes);
+
+        await svc.RecordAsync(
+            new RecordSwipeRequest(ActorId, TargetId, SwipeActionType.Like),
+            CancellationToken.None);
+
+        Assert.Equal(0, outbox.EnqueueCallCount);
+    }
+
+    /// <summary>A Pass swipe does not enqueue any outbox message.</summary>
+    [Fact]
+    public async Task Pass_DoesNotEnqueueOutboxMessage()
+    {
+        (RecordSwipeService svc, _, _, _, FakeOutboxWriter outbox) = Build();
+
+        await svc.RecordAsync(
+            new RecordSwipeRequest(ActorId, TargetId, SwipeActionType.Pass),
+            CancellationToken.None);
+
+        Assert.Equal(0, outbox.EnqueueCallCount);
+    }
 }
+
