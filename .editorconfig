@@ -13,6 +13,9 @@ indent_size = 4
 # Enforce file-scoped namespace style (modern .NET)
 csharp_style_namespace_declarations = file_scoped:error
 
+# Enforce block bodies for methods (IDE0022)
+csharp_style_expression_bodied_methods = false:error
+
 dotnet_analyzer_diagnostic.severity = error
 
 # CA1: Design

@@ -27,10 +27,10 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
-  <!-- Add project references here as you add modules under test -->
   <ItemGroup>
     <ProjectReference Include="..\..\src\Platform\Lunara.SharedKernel\Lunara.SharedKernel.csproj" />
     <ProjectReference Include="..\..\src\Platform\Lunara.BuildingBlocks\Lunara.BuildingBlocks.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Social\Lunara.Social.Domain\Lunara.Social.Domain.csproj" />
   </ItemGroup>
 
 </Project>
