@@ -9,4 +9,4 @@ builder.Services.AddHostedService<LunaraWorker>();
 builder.Services.AddHostedService<OutboxPublisherHostedService>();
 
 IHost host = builder.Build();
-await host.RunAsync();
+await host.RunAsync().ConfigureAwait(false);

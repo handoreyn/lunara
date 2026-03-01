@@ -24,7 +24,7 @@ internal sealed partial class OutboxPublisherHostedService(
         {
             try
             {
-                await PollOnceAsync(stoppingToken);
+                await PollOnceAsync(stoppingToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -39,7 +39,7 @@ internal sealed partial class OutboxPublisherHostedService(
 
             try
             {
-                await Task.Delay(PollInterval, stoppingToken);
+                await Task.Delay(PollInterval, stoppingToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -52,13 +52,20 @@ internal sealed partial class OutboxPublisherHostedService(
 
     private async Task PollOnceAsync(CancellationToken ct)
     {
-        await using AsyncServiceScope scope = scopeFactory.CreateAsyncScope();
-        IOutboxPoller poller = scope.ServiceProvider.GetRequiredService<IOutboxPoller>();
-        int count = await poller.PollOnceAsync(ct);
-
-        if (count > 0)
+        AsyncServiceScope scope = scopeFactory.CreateAsyncScope();
+        try
         {
-            LogPublished(logger, count);
+            IOutboxPoller poller = scope.ServiceProvider.GetRequiredService<IOutboxPoller>();
+            int count = await poller.PollOnceAsync(ct).ConfigureAwait(false);
+
+            if (count > 0)
+            {
+                LogPublished(logger, count);
+            }
+        }
+        finally
+        {
+            await scope.DisposeAsync().ConfigureAwait(false);
         }
     }
 

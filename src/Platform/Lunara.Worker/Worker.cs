@@ -14,7 +14,7 @@ internal sealed partial class LunaraWorker(ILogger<LunaraWorker> logger) : Backg
                 LogWorkerRunning(logger, DateTimeOffset.UtcNow);
             }
 
-            await Task.Delay(1000, stoppingToken);
+            await Task.Delay(1000, stoppingToken).ConfigureAwait(false);
         }
     }
 }
