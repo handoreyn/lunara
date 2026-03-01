@@ -18,7 +18,11 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.MapGet("/health", () => Results.Ok());
-app.MapGet("/ready", () => Results.Ok());
+app.MapGet("/ready", async (IDatabaseReadinessChecker checker, CancellationToken ct) =>
+{
+    bool isReady = await checker.IsReadyAsync(ct).ConfigureAwait(false);
+    return isReady ? Results.Ok() : Results.StatusCode(503);
+});
 
 app.MapPost("/v1/social/swipe", async (
     HttpContext http,
