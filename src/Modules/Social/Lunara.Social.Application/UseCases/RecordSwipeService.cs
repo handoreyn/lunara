@@ -54,7 +54,8 @@ public sealed class RecordSwipeService(
 
         // Like: check for duplicate.
         bool alreadyLiked = await likeRepository.ExistsLikeAsync(
-            request.ActorId, request.TargetId, ct);
+            request.ActorId, request.TargetId, ct)
+            .ConfigureAwait(false);
 
         if (alreadyLiked)
         {
@@ -65,10 +66,12 @@ public sealed class RecordSwipeService(
 
         // Check for reciprocal like before persisting.
         bool reciprocal = await likeRepository.ExistsLikeAsync(
-            request.TargetId, request.ActorId, ct);
+            request.TargetId, request.ActorId, ct)
+            .ConfigureAwait(false);
 
         await likeRepository.AddLikeAsync(
-            request.ActorId, request.TargetId, now, ct);
+            request.ActorId, request.TargetId, now, ct)
+            .ConfigureAwait(false);
 
         if (reciprocal)
         {
@@ -79,7 +82,7 @@ public sealed class RecordSwipeService(
             // but we null-check defensively to keep the compiler happy.
             if (match is not null)
             {
-                await matchRepository.AddAsync(match, ct);
+                await matchRepository.AddAsync(match, ct).ConfigureAwait(false);
 
                 string payloadJson = JsonSerializer.Serialize(new
                 {
@@ -94,14 +97,15 @@ public sealed class RecordSwipeService(
                     payloadJson,
                     now,
                     request.CorrelationId,
-                    ct);
+                    ct)
+                    .ConfigureAwait(false);
 
-                await unitOfWork.SaveChangesAsync(ct);
+                await unitOfWork.SaveChangesAsync(ct).ConfigureAwait(false);
                 return new RecordSwipeResult(LikeRecorded: true, MatchCreated: true, MatchId: match.Id.Value);
             }
         }
 
-        await unitOfWork.SaveChangesAsync(ct);
+        await unitOfWork.SaveChangesAsync(ct).ConfigureAwait(false);
         return new RecordSwipeResult(LikeRecorded: true, MatchCreated: false, MatchId: null);
     }
 }

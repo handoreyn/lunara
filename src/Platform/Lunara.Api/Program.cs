@@ -55,8 +55,8 @@ app.MapPost("/v1/social/swipe", async (
     {
         CorrelationId = correlationId,
     };
-    RecordSwipeResult result = await svc.RecordAsync(request, ct);
+    RecordSwipeResult result = await svc.RecordAsync(request, ct).ConfigureAwait(false);
     return Results.Ok(result);
 });
 
-await app.RunAsync();
+await app.RunAsync().ConfigureAwait(false);
