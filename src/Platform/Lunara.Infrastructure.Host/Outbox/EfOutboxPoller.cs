@@ -36,7 +36,7 @@ internal sealed partial class EfOutboxPoller(
                 && (m.LockedUntilUtc == null || m.LockedUntilUtc < now))
             .OrderBy(m => m.OccurredAtUtc)
             .Take(BatchSize)
-            .ToListAsync(ct);
+            .ToListAsync(ct).ConfigureAwait(false);
 
         if (messages.Count == 0)
         {
@@ -51,15 +51,15 @@ internal sealed partial class EfOutboxPoller(
             message.LockedUntilUtc = lockUntil;
         }
 
-        await dbContext.SaveChangesAsync(ct);
+        await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
 
         // Publish each locked message and record outcomes.
         foreach (OutboxMessageEntity message in messages)
         {
-            await PublishMessageAsync(message, ct);
+            await PublishMessageAsync(message, ct).ConfigureAwait(false);
         }
 
-        await dbContext.SaveChangesAsync(ct);
+        await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
 
         return messages.Count;
     }
@@ -75,7 +75,7 @@ internal sealed partial class EfOutboxPoller(
                 message.Id.ToString(),
                 message.PayloadJson,
                 headers: null,
-                ct);
+                ct).ConfigureAwait(false);
 
             message.Status = OutboxMessageStatus.Sent;
             message.LockedUntilUtc = null;

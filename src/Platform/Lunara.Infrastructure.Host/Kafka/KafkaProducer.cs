@@ -61,7 +61,7 @@ internal sealed class KafkaProducer : IKafkaProducer, IDisposable
             Headers = kafkaHeaders,
         };
 
-        await _producer.ProduceAsync(topic, message, ct);
+        await _producer.ProduceAsync(topic, message, ct).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
