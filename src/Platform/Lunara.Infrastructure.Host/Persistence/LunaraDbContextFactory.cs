@@ -17,7 +17,7 @@ internal sealed class LunaraDbContextFactory : IDesignTimeDbContextFactory<Lunar
         DbContextOptionsBuilder<LunaraDbContext> builder = new();
 
         builder.UseNpgsql(
-            "Host=localhost;Database=lunara_dev;Username=postgres;Password=postgres",
+            "Host=localhost;Port=5432;Database=lunara;Username=lunara;Password=lunara",
             npgsql => npgsql.MigrationsHistoryTable("__ef_migrations_history"));
 
         return new LunaraDbContext(builder.Options);
