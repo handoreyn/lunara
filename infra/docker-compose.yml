@@ -8,8 +8,10 @@
 # Ports:
 #   5432  → PostgreSQL
 #   9092  → Kafka (host access)
-#   5000  → Lunara.Api  (http://localhost:5000)
-#   8080  → Kafka UI    (http://localhost:8080)
+#   5000  → Lunara.Api     (http://localhost:5000)
+#   8080  → Kafka UI       (http://localhost:8080)
+#   3000  → Grafana        (http://localhost:3000  admin/admin)
+#   3100  → Loki           (internal — queried via Grafana)
 #
 # All variables are loaded from the sibling .env file (git-ignored).
 
@@ -120,5 +122,49 @@ services:
       KafkaOptions__BootstrapServers: "kafka:29092"
       KafkaOptions__TopicPrefix: "lunara."
 
+  # ── Loki (log aggregation) ────────────────────────────────────────────────
+  loki:
+    image: grafana/loki:3.0.0
+    container_name: lunara-loki
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ./observability/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki_data:/loki
+
+  # ── Promtail (log shipper — reads Docker container logs via socket) ────────
+  promtail:
+    image: grafana/promtail:3.0.0
+    container_name: lunara-promtail
+    restart: unless-stopped
+    command: -config.file=/etc/promtail/promtail-config.yml
+    volumes:
+      - ./observability/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - loki
+
+  # ── Grafana (log viewer and dashboard) ────────────────────────────────────
+  grafana:
+    image: grafana/grafana:11.0.0
+    container_name: lunara-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - loki
+
 volumes:
   postgres_data:
+  loki_data:
+  grafana_data:

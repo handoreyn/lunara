@@ -30,7 +30,7 @@ All commands should be run from the **repository root**.
 docker compose -f infra/docker-compose.yml up -d --build
 
 # Start only infrastructure (skip api + worker — useful during active development)
-docker compose -f infra/docker-compose.yml up -d postgres zookeeper kafka kafka-ui
+docker compose -f infra/docker-compose.yml up -d postgres zookeeper kafka kafka-ui loki promtail grafana
 
 # Start a single service
 docker compose -f infra/docker-compose.yml up -d postgres
@@ -87,9 +87,69 @@ REST API exposed at **http://localhost:5000**.
 
 Background worker — no exposed port. Polls the transactional outbox and publishes events to Kafka.
 
+### Grafana
+
+Log viewer and dashboard at **http://localhost:3000**.
+
+| Property | Value |
+|----------|-------|
+| URL | `http://localhost:3000` |
+| Username | `admin` |
+| Password | `admin` |
+
+The **Loki** datasource is provisioned automatically on first start — no manual setup needed.
+
+### Loki
+
+Log aggregation backend. Not accessed directly; queried through Grafana. Port `3100` is exposed for debugging only.
+
+### Promtail
+
+Sidecar log shipper. Reads all Lunara container logs via the Docker socket and forwards them to Loki with `container`, `service`, and `logstream` labels.
+
 ---
 
-## Calling the API
+## Viewing logs in Grafana
+
+### Opening Grafana
+
+1. Navigate to [http://localhost:3000](http://localhost:3000).
+2. Log in with **admin / admin**.
+3. Go to **Explore** (compass icon in the left sidebar).
+4. Select the **Loki** datasource (auto-selected as default).
+
+### LogQL query examples
+
+```logql
+# All logs from the API container
+{service="api"}
+
+# All logs from the Worker container
+{service="worker"}
+
+# All Lunara container logs combined
+{container=~"lunara-.*"}
+
+# Filter for warnings and errors across all services
+{container=~"lunara-.*"} |= "warn" or {container=~"lunara-.*"} |= "error"
+
+# Database readiness failures only
+{service="api"} |= "Database readiness check"
+
+# Outbox publisher activity
+{service="worker"} |= "Outbox publisher"
+
+# Errors with structured fields (JSON log parsing)
+{service="api"} | json | level =~ "(warn|error|crit)"
+```
+
+### Saving a dashboard
+
+1. In **Explore**, run a query.
+2. Click **Add to dashboard** to persist the panel.
+3. Dashboards are stored in the `grafana_data` volume and survive container restarts.
+
+---
 
 ```bash
 # Health / smoke-test — record a swipe
@@ -174,11 +234,13 @@ docker compose -f infra/docker-compose.yml up -d postgres zookeeper kafka kafka-
 ### Port conflicts
 
 | Port | Service |
-|------|---------|
+|------|----------|
 | `5432` | PostgreSQL |
 | `9092` | Kafka (host listener) |
 | `5000` | Lunara.Api |
 | `8080` | Kafka UI |
+| `3000` | Grafana |
+| `3100` | Loki |
 
 Stop the conflicting process or change the host-side port mapping in `docker-compose.yml`.
 
