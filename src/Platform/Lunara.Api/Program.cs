@@ -12,11 +12,6 @@ builder.Services.AddLunaraModules();
 
 WebApplication app = builder.Build();
 
-if (!app.Environment.IsDevelopment())
-{
-    app.UseHttpsRedirection();
-}
-
 app.MapGet("/health", () => Results.Ok());
 app.MapGet("/ready", async (IDatabaseReadinessChecker checker, CancellationToken ct) =>
 {
