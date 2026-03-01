@@ -51,11 +51,22 @@ public static class PlatformServiceCollectionExtensions
         services.AddDbContext<LunaraDbContext>(opts =>
             opts.UseNpgsql(
                 connectionString,
-                npgsql => npgsql.MigrationsHistoryTable("__ef_migrations_history")));
+                npgsql =>
+                {
+                    npgsql.MigrationsHistoryTable("__ef_migrations_history");
+
+                    // Transient Npgsql errors (connection resets, socket failures) are retried
+                    // automatically using exponential back-off up to the configured limit.
+                    npgsql.EnableRetryOnFailure(
+                        maxRetryCount: 5,
+                        maxRetryDelay: TimeSpan.FromSeconds(10),
+                        errorCodesToAdd: null);
+                }));
 
         // Scoped: depends on the scoped LunaraDbContext.
         services.AddScoped<IOutboxWriter, EfOutboxWriter>();
         services.AddScoped<IOutboxPoller, EfOutboxPoller>();
+        services.AddScoped<IDatabaseReadinessChecker, DatabaseReadinessChecker>();
 
         // Singleton: Confluent.Kafka producer is thread-safe and expensive to create.
         services.AddSingleton<IKafkaProducer, KafkaProducer>();
