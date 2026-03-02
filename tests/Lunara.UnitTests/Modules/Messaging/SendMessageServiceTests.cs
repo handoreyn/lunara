@@ -204,6 +204,37 @@ public sealed class SendMessageServiceTests
         Assert.Equal(0, f.Uow.SaveCallCount);
     }
 
+    [Fact]
+    public async Task SendAsync_WhenNewConversationAndSenderNotCanonicalParticipant_ThrowsArgumentException()
+    {
+        // Arrange: the match's canonical participants are SenderA and SenderB,
+        // but an outsider attempts to send the very first message.
+        // The service must use canonical participants from IMatchReadService to
+        // bootstrap the conversation, so the outsider is rejected by the domain.
+        Fixtures f = Build();
+        UserId outsider = new(Guid.NewGuid());
+        SendMessageRequest req = new(AMatchId, outsider, "hi", null);
+
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => f.Svc.SendAsync(req, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task SendAsync_WhenNewConversationAndSenderNotCanonicalParticipant_NoConversationPersisted()
+    {
+        // Arrange: outsider sends first message; no conversation should be stored.
+        Fixtures f = Build();
+        UserId outsider = new(Guid.NewGuid());
+        SendMessageRequest req = new(AMatchId, outsider, "hi", null);
+
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => f.Svc.SendAsync(req, CancellationToken.None));
+
+        Assert.Equal(0, f.ConvRepo.AddCallCount);
+        Assert.Equal(0, f.Outbox.EnqueueCallCount);
+        Assert.Equal(0, f.Uow.SaveCallCount);
+    }
+
     // ── Text validation ──────────────────────────────────────────────────────
 
     [Fact]
