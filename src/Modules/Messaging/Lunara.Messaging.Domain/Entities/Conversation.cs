@@ -83,6 +83,27 @@ public sealed class Conversation
     }
 
     /// <summary>
+    /// Reconstitutes a <see cref="Conversation"/> from a previously persisted state.
+    /// Canonical ordering is assumed to have been enforced at creation time;
+    /// no reordering is applied.
+    /// </summary>
+    /// <param name="id">The conversation identifier.</param>
+    /// <param name="matchId">The originating match identifier.</param>
+    /// <param name="user1Id">The participant with the lexicographically smaller identifier.</param>
+    /// <param name="user2Id">The participant with the lexicographically larger identifier.</param>
+    /// <param name="createdAtUtc">The UTC timestamp at which the conversation was originally created.</param>
+    /// <returns>A reconstituted <see cref="Conversation"/> instance with an empty messages list.</returns>
+    public static Conversation Reconstitute(
+        ConversationId id,
+        MatchId matchId,
+        UserId user1Id,
+        UserId user2Id,
+        DateTimeOffset createdAtUtc)
+    {
+        return new Conversation(id, matchId, user1Id, user2Id, createdAtUtc);
+    }
+
+    /// <summary>
     /// Appends a new <see cref="Message"/> to this conversation and returns both the message
     /// and the corresponding <see cref="MessageSent"/> domain event.
     /// </summary>
