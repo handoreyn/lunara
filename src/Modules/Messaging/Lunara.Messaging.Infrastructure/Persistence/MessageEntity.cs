@@ -1,7 +1,7 @@
 namespace Lunara.Messaging.Infrastructure.Persistence;
 
 /// <summary>
-/// EF Core persistence row for a <see cref="Domain.Entities.Message"/> entity.
+/// EF Core persistence row for a <see cref="Lunara.Messaging.Domain.Entities.Message"/> entity.
 /// All columns are raw <see cref="Guid"/> / primitive values; no domain types cross the persistence boundary.
 /// </summary>
 public sealed class MessageEntity
