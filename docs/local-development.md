@@ -90,6 +90,7 @@ dotnet ef database update \
 | Migration | Table(s) created |
 |-----------|-----------------|
 | `InitialOutbox` | `OutboxMessages` (transactional outbox, indexes: `ix_outbox_status_occurred`, `ix_outbox_locked_until`) |
+| `AddMessagingTables` | `messaging_conversations` (unique index on `MatchId`) · `messaging_messages` (FK → `messaging_conversations`, index on `ConversationId`) |
 
 ---
 

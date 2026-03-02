@@ -63,6 +63,10 @@ public static class PlatformServiceCollectionExtensions
                         errorCodesToAdd: null);
                 }));
 
+        // Register the base DbContext as a scoped alias so module repositories
+        // can inject DbContext without referencing LunaraDbContext directly.
+        services.AddScoped<DbContext>(sp => sp.GetRequiredService<LunaraDbContext>());
+
         // Scoped: depends on the scoped LunaraDbContext.
         services.AddScoped<IOutboxWriter, EfOutboxWriter>();
         services.AddScoped<IOutboxPoller, EfOutboxPoller>();

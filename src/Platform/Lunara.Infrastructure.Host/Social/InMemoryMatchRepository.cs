@@ -1,5 +1,6 @@
 using Lunara.Social.Application.Ports;
 using Lunara.Social.Domain.Entities;
+using Lunara.Social.Domain.ValueObjects;
 
 namespace Lunara.Infrastructure.Host.Social;
 
@@ -21,5 +22,29 @@ internal sealed class InMemoryMatchRepository : IMatchRepository
         }
 
         return Task.CompletedTask;
+    }
+
+    /// <inheritdoc/>
+    public Task<bool> ExistsAsync(MatchId matchId, CancellationToken ct)
+    {
+        bool exists;
+        lock (_lock)
+        {
+            exists = _matches.Any(m => m.Id == matchId);
+        }
+
+        return Task.FromResult(exists);
+    }
+
+    /// <inheritdoc/>
+    public Task<Match?> FindByIdAsync(MatchId matchId, CancellationToken ct)
+    {
+        Match? match;
+        lock (_lock)
+        {
+            match = _matches.FirstOrDefault(m => m.Id == matchId);
+        }
+
+        return Task.FromResult(match);
     }
 }
