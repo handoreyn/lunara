@@ -25,4 +25,11 @@ public sealed class FakeMatchRepository : IMatchRepository
         bool exists = _addedMatches.Any(m => m.Id == matchId);
         return Task.FromResult(exists);
     }
+
+    /// <inheritdoc/>
+    public Task<Match?> FindByIdAsync(MatchId matchId, CancellationToken ct)
+    {
+        Match? match = _addedMatches.FirstOrDefault(m => m.Id == matchId);
+        return Task.FromResult(match);
+    }
 }

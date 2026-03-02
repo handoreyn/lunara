@@ -3,15 +3,16 @@ using Lunara.Messaging.Domain.ValueObjects;
 namespace Lunara.Messaging.Application.Ports;
 
 /// <summary>
-/// Read-only port for checking the existence of a social match.
+/// Read-only port for querying a social match's participants.
 /// Implemented by the Social module's infrastructure (or an anti-corruption adapter).
 /// </summary>
 public interface IMatchReadService
 {
     /// <summary>
-    /// Returns <c>true</c> when a match with the given <paramref name="matchId"/> exists.
+    /// Returns the canonical participant pair for the match with the given
+    /// <paramref name="matchId"/>, or <c>null</c> if no such match exists.
     /// </summary>
-    /// <param name="matchId">The match to verify.</param>
+    /// <param name="matchId">The match to look up.</param>
     /// <param name="ct">A <see cref="CancellationToken"/> to observe.</param>
-    Task<bool> MatchExistsAsync(MatchId matchId, CancellationToken ct);
+    Task<MatchParticipants?> GetParticipantsAsync(MatchId matchId, CancellationToken ct);
 }
