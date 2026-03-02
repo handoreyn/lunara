@@ -1,5 +1,6 @@
 using Lunara.Social.Application.Ports;
 using Lunara.Social.Domain.Entities;
+using Lunara.Social.Domain.ValueObjects;
 
 namespace Lunara.UnitTests.Social.Fakes;
 
@@ -16,5 +17,12 @@ public sealed class FakeMatchRepository : IMatchRepository
     {
         _addedMatches.Add(match);
         return Task.CompletedTask;
+    }
+
+    /// <inheritdoc/>
+    public Task<bool> ExistsAsync(MatchId matchId, CancellationToken ct)
+    {
+        bool exists = _addedMatches.Any(m => m.Id == matchId);
+        return Task.FromResult(exists);
     }
 }

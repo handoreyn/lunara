@@ -44,8 +44,10 @@ public static class ServiceCollectionExtensions
         services.AddMessagingPersistence();
         services.AddScoped<MessagingPorts.IUnitOfWork, EfMessagingUnitOfWork>();
 
-        // Singleton: permissive stub until Social gains EF persistence.
-        services.AddSingleton<MessagingPorts.IMatchReadService, StubMatchReadService>();
+        // Singleton: adapts the Social IMatchRepository singleton to satisfy Messaging's read port.
+        // Both the Social module (InMemoryMatchRepository) and this adapter are singletons,
+        // so they share the same in-memory store.
+        services.AddSingleton<MessagingPorts.IMatchReadService, SocialMatchReadService>();
 
         // Scoped: use-case service resolved once per request.
         services.AddScoped<SendMessageService>();
