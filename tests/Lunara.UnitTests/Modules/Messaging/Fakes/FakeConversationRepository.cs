@@ -10,25 +10,13 @@ namespace Lunara.UnitTests.Modules.Messaging.Fakes;
 public sealed class FakeConversationRepository : IConversationRepository
 {
     private readonly Dictionary<Guid, Conversation> _store = [];
+    private readonly List<Conversation> _addedList = [];
 
     /// <summary>Gets all conversations that were passed to <see cref="AddAsync"/>.</summary>
-    public IReadOnlyList<Conversation> AddedConversations => [.. _store.Values];
+    public IReadOnlyList<Conversation> AddedConversations => _addedList;
 
     /// <summary>Gets the number of times <see cref="AddAsync"/> was called.</summary>
     public int AddCallCount { get; private set; }
-
-    /// <summary>
-    /// When set, <see cref="AddAsync"/> throws this exception instead of storing the
-    /// conversation, and afterwards <see cref="GetByMatchIdAsync"/> returns
-    /// <see cref="ConflictConversation"/> to simulate a concurrent-insert race.
-    /// </summary>
-    public Exception? ThrowOnAdd { get; set; }
-
-    /// <summary>
-    /// The conversation that <see cref="GetByMatchIdAsync"/> returns after
-    /// <see cref="ThrowOnAdd"/> has been triggered, simulating a concurrent winner.
-    /// </summary>
-    public Conversation? ConflictConversation { get; set; }
 
     /// <summary>Seeds an existing conversation so <see cref="GetByMatchIdAsync"/> finds it.</summary>
     /// <param name="conversation">The conversation to pre-populate.</param>
@@ -50,22 +38,10 @@ public sealed class FakeConversationRepository : IConversationRepository
     {
         ArgumentNullException.ThrowIfNull(conversation);
         AddCallCount++;
-
-        if (ThrowOnAdd is not null)
-        {
-            Exception toThrow = ThrowOnAdd;
-            ThrowOnAdd = null;
-
-            // Simulate the race winner becoming visible before rethrowing.
-            if (ConflictConversation is not null)
-            {
-                _store[ConflictConversation.MatchId.Value] = ConflictConversation;
-            }
-
-            throw toThrow;
-        }
-
-        _store[conversation.MatchId.Value] = conversation;
+        // Record the staged conversation for test assertions, but do NOT write to _store.
+        // In production, AddAsync only stages the entity in the EF change tracker;
+        // SaveChangesAsync is what commits it to the database.
+        _addedList.Add(conversation);
         return Task.CompletedTask;
     }
 }
