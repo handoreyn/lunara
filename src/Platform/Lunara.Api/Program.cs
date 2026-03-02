@@ -1,9 +1,15 @@
+using Lunara.Api.Messaging;
 using Lunara.Api.Social;
 using Lunara.Infrastructure.Host;
+using Lunara.Messaging.Application.DTOs;
+using Lunara.Messaging.Application.Exceptions;
+using Lunara.Messaging.Application.UseCases;
 using Lunara.Social.Application.DTOs;
 using Lunara.Social.Application.UseCases;
 using Lunara.Social.Domain;
 using Lunara.Social.Domain.ValueObjects;
+using MessagingMatchId = Lunara.Messaging.Domain.ValueObjects.MatchId;
+using MessagingUserId = Lunara.Messaging.Domain.ValueObjects.UserId;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -56,6 +62,60 @@ app.MapPost("/v1/social/swipe", async (
     };
     RecordSwipeResult result = await svc.RecordAsync(request, ct).ConfigureAwait(false);
     return Results.Ok(result);
+});
+
+app.MapPost("/v1/messaging/send", async (
+    HttpContext http,
+    SendMessageBody body,
+    SendMessageService svc,
+    CancellationToken ct) =>
+{
+    string? senderIdHeader = http.Request.Headers["X-User-Id"];
+
+    if (string.IsNullOrEmpty(senderIdHeader)
+        || !Guid.TryParse(senderIdHeader, out Guid senderGuid)
+        || senderGuid == Guid.Empty)
+    {
+        return Results.BadRequest("Missing or invalid X-User-Id header.");
+    }
+
+    if (body.MatchId == Guid.Empty)
+    {
+        return Results.BadRequest("matchId must not be empty.");
+    }
+
+    if (body.RecipientUserId == Guid.Empty)
+    {
+        return Results.BadRequest("recipientUserId must not be empty.");
+    }
+
+    if (string.IsNullOrWhiteSpace(body.Text))
+    {
+        return Results.BadRequest("text must not be empty.");
+    }
+
+    string? correlationId = http.Request.Headers["X-Correlation-Id"];
+    if (string.IsNullOrEmpty(correlationId))
+    {
+        correlationId = null;
+    }
+
+    SendMessageRequest request = new(
+        new MessagingMatchId(body.MatchId),
+        new MessagingUserId(senderGuid),
+        new MessagingUserId(body.RecipientUserId),
+        body.Text,
+        correlationId);
+
+    try
+    {
+        SendMessageResult result = await svc.SendAsync(request, ct).ConfigureAwait(false);
+        return Results.Ok(result);
+    }
+    catch (MatchNotFoundException)
+    {
+        return Results.BadRequest("Match not found.");
+    }
 });
 
 await app.RunAsync().ConfigureAwait(false);
