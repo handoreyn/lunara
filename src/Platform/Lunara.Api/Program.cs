@@ -94,6 +94,16 @@ app.MapPost("/v1/messaging/send", async (
         return Results.BadRequest("text must not be empty.");
     }
 
+    if (senderGuid == body.RecipientUserId)
+    {
+        return Results.BadRequest("Sender and recipient must be different users.");
+    }
+
+    if (body.Text.Trim().Length > 2000)
+    {
+        return Results.BadRequest("text must not exceed 2000 characters.");
+    }
+
     string? correlationId = http.Request.Headers["X-Correlation-Id"];
     if (string.IsNullOrEmpty(correlationId))
     {
@@ -115,6 +125,10 @@ app.MapPost("/v1/messaging/send", async (
     catch (MatchNotFoundException)
     {
         return Results.BadRequest("Match not found.");
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(ex.Message);
     }
 });
 
