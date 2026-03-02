@@ -10,10 +10,10 @@ namespace Lunara.UnitTests.Modules.Messaging.Fakes;
 public sealed class FakeConversationRepository : IConversationRepository
 {
     private readonly Dictionary<Guid, Conversation> _store = [];
-    private readonly List<Conversation> _addedList = [];
+    private readonly List<Conversation> _added = [];
 
     /// <summary>Gets all conversations that were passed to <see cref="AddAsync"/>.</summary>
-    public IReadOnlyList<Conversation> AddedConversations => _addedList;
+    public IReadOnlyList<Conversation> AddedConversations => _added.AsReadOnly();
 
     /// <summary>Gets the number of times <see cref="AddAsync"/> was called.</summary>
     public int AddCallCount { get; private set; }
@@ -38,10 +38,23 @@ public sealed class FakeConversationRepository : IConversationRepository
     {
         ArgumentNullException.ThrowIfNull(conversation);
         AddCallCount++;
-        // Record the staged conversation for test assertions, but do NOT write to _store.
-        // In production, AddAsync only stages the entity in the EF change tracker;
-        // SaveChangesAsync is what commits it to the database.
-        _addedList.Add(conversation);
+
+        if (ThrowOnAdd is not null)
+        {
+            Exception toThrow = ThrowOnAdd;
+            ThrowOnAdd = null;
+
+            // Simulate the race winner becoming visible before rethrowing.
+            if (ConflictConversation is not null)
+            {
+                _store[ConflictConversation.MatchId.Value] = ConflictConversation;
+            }
+
+            throw toThrow;
+        }
+
+        _store[conversation.MatchId.Value] = conversation;
+        _added.Add(conversation);
         return Task.CompletedTask;
     }
 }
