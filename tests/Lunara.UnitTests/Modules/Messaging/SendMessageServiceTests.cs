@@ -170,6 +170,42 @@ public sealed class SendMessageServiceTests
     // ── Sender not a participant ─────────────────────────────────────────────
 
     [Fact]
+    public async Task SendAsync_WhenSenderNotInMatchParticipants_ThrowsBeforeConversationLookup()
+    {
+        // Sender is not one of the match's canonical participants —
+        // the check should fire before any conversation or repo work.
+        Fixtures f = Build();
+        UserId outsider = new(Guid.NewGuid());
+        SendMessageRequest req = new(AMatchId, outsider, "hi", null);
+
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => f.Svc.SendAsync(req, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task SendAsync_WhenSenderNotInMatchParticipants_SkipsAllRepositoryOperations()
+    {
+        // Fail-fast: no conversation is created and nothing is persisted.
+        Fixtures f = Build();
+        UserId outsider = new(Guid.NewGuid());
+        SendMessageRequest req = new(AMatchId, outsider, "hi", null);
+
+        try
+        {
+            await f.Svc.SendAsync(req, CancellationToken.None);
+        }
+        catch (ArgumentException)
+        {
+            // expected
+        }
+
+        Assert.Equal(0, f.ConvRepo.AddCallCount);
+        Assert.Equal(0, f.MsgRepo.AddCallCount);
+        Assert.Equal(0, f.Outbox.EnqueueCallCount);
+        Assert.Equal(0, f.Uow.SaveCallCount);
+    }
+
+    [Fact]
     public async Task SendAsync_WhenSenderIsNotParticipant_ThrowsArgumentException()
     {
         // Pre-seed a conversation so the outsider is provably not a participant.
