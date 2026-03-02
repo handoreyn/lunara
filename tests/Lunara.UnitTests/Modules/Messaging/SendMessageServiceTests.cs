@@ -243,6 +243,42 @@ public sealed class SendMessageServiceTests
         Assert.Equal(0, f.Outbox.EnqueueCallCount);
     }
 
+    // ── Concurrent first-message race ───────────────────────────────────────
+
+    [Fact]
+    public async Task SendAsync_WhenConcurrentInsertRace_RetriesWithExistingConversation()
+    {
+        // Arrange: no conversation yet, but AddAsync will throw (simulating a unique-violation)
+        // and the conflict conversation becomes visible on the retry GetByMatchId.
+        Conversation conflictConversation = Conversation.CreateFromMatch(AMatchId, SenderA, SenderB, FixedNow);
+
+        Fixtures f = Build();
+        f.ConvRepo.ThrowOnAdd = new InvalidOperationException("unique constraint violation");
+        f.ConvRepo.ConflictConversation = conflictConversation;
+
+        SendMessageResult result = await f.Svc.SendAsync(DefaultRequest(), CancellationToken.None);
+
+        // One AddAsync call (the failed attempt), no second AddAsync (retry uses existing).
+        Assert.Equal(1, f.ConvRepo.AddCallCount);
+        // Message was still added and outbox was enqueued.
+        Assert.Equal(1, f.MsgRepo.AddCallCount);
+        Assert.Equal(1, f.Outbox.EnqueueCallCount);
+        Assert.Equal(1, f.Uow.SaveCallCount);
+        Assert.NotEqual(Guid.Empty, result.MessageId);
+    }
+
+    [Fact]
+    public async Task SendAsync_WhenConcurrentInsertRaceAndConversationStillMissing_Rethrows()
+    {
+        // Arrange: AddAsync throws but GetByMatchId still returns null (no winner yet).
+        Fixtures f = Build();
+        f.ConvRepo.ThrowOnAdd = new InvalidOperationException("unique constraint violation");
+        // ConflictConversation is null — store stays empty after the throw.
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => f.Svc.SendAsync(DefaultRequest(), CancellationToken.None));
+    }
+
     // ── Correlation id is forwarded ──────────────────────────────────────────
 
     [Fact]
