@@ -39,21 +39,9 @@ public sealed class FakeConversationRepository : IConversationRepository
         ArgumentNullException.ThrowIfNull(conversation);
         AddCallCount++;
 
-        if (ThrowOnAdd is not null)
-        {
-            Exception toThrow = ThrowOnAdd;
-            ThrowOnAdd = null;
-
-            // Simulate the race winner becoming visible before rethrowing.
-            if (ConflictConversation is not null)
-            {
-                _store[ConflictConversation.MatchId.Value] = ConflictConversation;
-            }
-
-            throw toThrow;
-        }
-
-        _store[conversation.MatchId.Value] = conversation;
+        // Do NOT write to _store here — that would simulate a committed DB row,
+        // but AddAsync only stages the entity for the next SaveChangesAsync.
+        // Tests that need the conversation visible after a save should call Seed().
         _added.Add(conversation);
         return Task.CompletedTask;
     }
