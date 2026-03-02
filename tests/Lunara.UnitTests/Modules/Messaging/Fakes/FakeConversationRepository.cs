@@ -10,9 +10,10 @@ namespace Lunara.UnitTests.Modules.Messaging.Fakes;
 public sealed class FakeConversationRepository : IConversationRepository
 {
     private readonly Dictionary<Guid, Conversation> _store = [];
+    private readonly List<Conversation> _added = [];
 
     /// <summary>Gets all conversations that were passed to <see cref="AddAsync"/>.</summary>
-    public IReadOnlyList<Conversation> AddedConversations => [.. _store.Values];
+    public IReadOnlyList<Conversation> AddedConversations => _added.AsReadOnly();
 
     /// <summary>Gets the number of times <see cref="AddAsync"/> was called.</summary>
     public int AddCallCount { get; private set; }
@@ -66,6 +67,7 @@ public sealed class FakeConversationRepository : IConversationRepository
         }
 
         _store[conversation.MatchId.Value] = conversation;
+        _added.Add(conversation);
         return Task.CompletedTask;
     }
 }
