@@ -84,19 +84,9 @@ app.MapPost("/v1/messaging/send", async (
         return Results.BadRequest("matchId must not be empty.");
     }
 
-    if (body.RecipientUserId == Guid.Empty)
-    {
-        return Results.BadRequest("recipientUserId must not be empty.");
-    }
-
     if (string.IsNullOrWhiteSpace(body.Text))
     {
         return Results.BadRequest("text must not be empty.");
-    }
-
-    if (senderGuid == body.RecipientUserId)
-    {
-        return Results.BadRequest("Sender and recipient must be different users.");
     }
 
     if (body.Text.Trim().Length > 2000)
@@ -113,7 +103,6 @@ app.MapPost("/v1/messaging/send", async (
     SendMessageRequest request = new(
         new MessagingMatchId(body.MatchId),
         new MessagingUserId(senderGuid),
-        new MessagingUserId(body.RecipientUserId),
         body.Text,
         correlationId);
 

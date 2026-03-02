@@ -35,4 +35,16 @@ internal sealed class InMemoryMatchRepository : IMatchRepository
 
         return Task.FromResult(exists);
     }
+
+    /// <inheritdoc/>
+    public Task<Match?> FindByIdAsync(MatchId matchId, CancellationToken ct)
+    {
+        Match? match;
+        lock (_lock)
+        {
+            match = _matches.FirstOrDefault(m => m.Id == matchId);
+        }
+
+        return Task.FromResult(match);
+    }
 }

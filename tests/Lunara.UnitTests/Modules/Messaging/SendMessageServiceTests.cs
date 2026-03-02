@@ -37,7 +37,7 @@ public sealed class SendMessageServiceTests
         FakeMatchReadService matchSvc = new();
         if (matchExists)
         {
-            matchSvc.SeedMatch(AMatchId);
+            matchSvc.SeedMatch(AMatchId, SenderA, SenderB);
         }
 
         FakeConversationRepository convRepo = new();
@@ -62,7 +62,6 @@ public sealed class SendMessageServiceTests
         return new SendMessageRequest(
             MatchId: AMatchId,
             SenderId: sender ?? SenderA,
-            RecipientId: SenderB,
             Text: text,
             CorrelationId: "corr-123");
     }
@@ -177,7 +176,7 @@ public sealed class SendMessageServiceTests
         Conversation existing = Conversation.CreateFromMatch(AMatchId, SenderA, SenderB, FixedNow);
         Fixtures f = Build(existingConversation: existing);
         UserId outsider = new(Guid.NewGuid());
-        SendMessageRequest req = new(AMatchId, outsider, SenderB, "hi", null);
+        SendMessageRequest req = new(AMatchId, outsider, "hi", null);
 
         await Assert.ThrowsAsync<ArgumentException>(
             () => f.Svc.SendAsync(req, CancellationToken.None));
@@ -190,7 +189,7 @@ public sealed class SendMessageServiceTests
         Conversation existing = Conversation.CreateFromMatch(AMatchId, SenderA, SenderB, FixedNow);
         Fixtures f = Build(existingConversation: existing);
         UserId outsider = new(Guid.NewGuid());
-        SendMessageRequest req = new(AMatchId, outsider, SenderB, "hi", null);
+        SendMessageRequest req = new(AMatchId, outsider, "hi", null);
 
         try
         {

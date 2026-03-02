@@ -42,14 +42,10 @@ public sealed class SendMessageService(
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        bool matchExists = await matchReadService
-            .MatchExistsAsync(request.MatchId, ct)
-            .ConfigureAwait(false);
-
-        if (!matchExists)
-        {
-            throw new MatchNotFoundException(request.MatchId);
-        }
+        MatchParticipants participants = await matchReadService
+            .GetParticipantsAsync(request.MatchId, ct)
+            .ConfigureAwait(false)
+            ?? throw new MatchNotFoundException(request.MatchId);
 
         Conversation? conversation = await conversationRepository
             .GetByMatchIdAsync(request.MatchId, ct)
@@ -61,8 +57,8 @@ public sealed class SendMessageService(
         {
             conversation = Conversation.CreateFromMatch(
                 request.MatchId,
-                request.SenderId,
-                request.RecipientId,
+                participants.User1Id,
+                participants.User2Id,
                 clock.UtcNow);
         }
 
@@ -74,7 +70,8 @@ public sealed class SendMessageService(
         catch (Exception) when (isNewConversation)
         {
             // A concurrent request won the race and inserted the conversation first.
-            // Reload the existing conversation and retry without inserting.
+            // The UnitOfWork clears the change tracker on failure, so we can reload
+            // the existing conversation and retry without inserting.
             Conversation? existing = await conversationRepository
                 .GetByMatchIdAsync(request.MatchId, ct)
                 .ConfigureAwait(false);
