@@ -18,19 +18,6 @@ public sealed class FakeConversationRepository : IConversationRepository
     /// <summary>Gets the number of times <see cref="AddAsync"/> was called.</summary>
     public int AddCallCount { get; private set; }
 
-    /// <summary>
-    /// When set, <see cref="AddAsync"/> throws this exception instead of storing the
-    /// conversation, and afterwards <see cref="GetByMatchIdAsync"/> returns
-    /// <see cref="ConflictConversation"/> to simulate a concurrent-insert race.
-    /// </summary>
-    public Exception? ThrowOnAdd { get; set; }
-
-    /// <summary>
-    /// The conversation that <see cref="GetByMatchIdAsync"/> returns after
-    /// <see cref="ThrowOnAdd"/> has been triggered, simulating a concurrent winner.
-    /// </summary>
-    public Conversation? ConflictConversation { get; set; }
-
     /// <summary>Seeds an existing conversation so <see cref="GetByMatchIdAsync"/> finds it.</summary>
     /// <param name="conversation">The conversation to pre-populate.</param>
     public void Seed(Conversation conversation)
