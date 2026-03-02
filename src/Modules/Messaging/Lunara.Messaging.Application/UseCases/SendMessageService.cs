@@ -66,12 +66,41 @@ public sealed class SendMessageService(
                 clock.UtcNow);
         }
 
-        (Message message, MessageSent evt) = conversation!.SendMessage(
+        try
+        {
+            return await PersistMessageAsync(conversation!, request, addConversation: isNewConversation, ct)
+                .ConfigureAwait(false);
+        }
+        catch (Exception) when (isNewConversation)
+        {
+            // A concurrent request won the race and inserted the conversation first.
+            // Reload the existing conversation and retry without inserting.
+            Conversation? existing = await conversationRepository
+                .GetByMatchIdAsync(request.MatchId, ct)
+                .ConfigureAwait(false);
+
+            if (existing is null)
+            {
+                throw;
+            }
+
+            return await PersistMessageAsync(existing, request, addConversation: false, ct)
+                .ConfigureAwait(false);
+        }
+    }
+
+    private async Task<SendMessageResult> PersistMessageAsync(
+        Conversation conversation,
+        SendMessageRequest request,
+        bool addConversation,
+        CancellationToken ct)
+    {
+        (Message message, MessageSent evt) = conversation.SendMessage(
             request.SenderId,
             request.Text,
             clock.UtcNow);
 
-        if (isNewConversation)
+        if (addConversation)
         {
             await conversationRepository
                 .AddAsync(conversation, ct)
