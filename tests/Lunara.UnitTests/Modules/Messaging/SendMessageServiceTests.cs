@@ -356,33 +356,34 @@ public sealed class SendMessageServiceTests
     [Fact]
     public async Task SendAsync_WhenConcurrentInsertRace_RetriesWithExistingConversation()
     {
-        // Arrange: no conversation yet, but AddAsync will throw (simulating a unique-violation
-        // translated by EfMessagingUnitOfWork), and the conflict conversation becomes visible
-        // on the retry GetByMatchId.
+        // Arrange: no conversation yet. SaveChangesAsync will throw on the first attempt,
+        // simulating the unique-constraint violation translated by EfMessagingUnitOfWork.
+        // The AfterThrow callback seeds the winner conversation so the retry can find it.
         Conversation conflictConversation = Conversation.CreateFromMatch(AMatchId, SenderA, SenderB, FixedNow);
 
         Fixtures f = Build();
-        f.ConvRepo.ThrowOnAdd = new ConversationAlreadyExistsException(AMatchId);
-        f.ConvRepo.ConflictConversation = conflictConversation;
+        f.Uow.ThrowOnFirstSave = new ConversationAlreadyExistsException(AMatchId);
+        f.Uow.AfterThrow = () => f.ConvRepo.Seed(conflictConversation);
 
         SendMessageResult result = await f.Svc.SendAsync(DefaultRequest(), CancellationToken.None);
 
-        // One AddAsync call (the failed attempt), no second AddAsync (retry uses existing).
+        // First attempt stages conv (AddCallCount=1); retry uses the seeded conflict conversation.
         Assert.Equal(1, f.ConvRepo.AddCallCount);
-        // Message was still added and outbox was enqueued.
-        Assert.Equal(1, f.MsgRepo.AddCallCount);
-        Assert.Equal(1, f.Outbox.EnqueueCallCount);
-        Assert.Equal(1, f.Uow.SaveCallCount);
+        // Both attempts add a message and enqueue to the outbox.
+        Assert.Equal(2, f.MsgRepo.AddCallCount);
+        Assert.Equal(2, f.Outbox.EnqueueCallCount);
+        // First SaveChangesAsync threw; second succeeded.
+        Assert.Equal(2, f.Uow.SaveCallCount);
         Assert.NotEqual(Guid.Empty, result.MessageId);
     }
 
     [Fact]
     public async Task SendAsync_WhenConcurrentInsertRaceAndConversationStillMissing_Rethrows()
     {
-        // Arrange: AddAsync throws but GetByMatchId still returns null (no winner yet).
+        // Arrange: SaveChangesAsync throws but GetByMatchIdAsync still returns null (no winner yet).
         Fixtures f = Build();
-        f.ConvRepo.ThrowOnAdd = new ConversationAlreadyExistsException(AMatchId);
-        // ConflictConversation is null — store stays empty after the throw.
+        f.Uow.ThrowOnFirstSave = new ConversationAlreadyExistsException(AMatchId);
+        // No AfterThrow — the store remains empty, so the retry finds null and rethrows.
 
         await Assert.ThrowsAsync<ConversationAlreadyExistsException>(
             () => f.Svc.SendAsync(DefaultRequest(), CancellationToken.None));
