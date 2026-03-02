@@ -33,8 +33,8 @@ public sealed class SendMessageService(
     ///   Thrown when the match referenced by <see cref="SendMessageRequest.MatchId"/> does not exist.
     /// </exception>
     /// <exception cref="ArgumentException">
-    ///   Thrown when the trimmed message text is empty or exceeds 2000 characters,
-    ///   or the sender is not a participant of the conversation.
+    ///   Thrown when the sender is not a participant of the match, the trimmed message text
+    ///   is empty, or the text exceeds 2000 characters.
     /// </exception>
     public async Task<SendMessageResult> SendAsync(
         SendMessageRequest request,
@@ -46,6 +46,13 @@ public sealed class SendMessageService(
             .GetParticipantsAsync(request.MatchId, ct)
             .ConfigureAwait(false)
             ?? throw new MatchNotFoundException(request.MatchId);
+
+        if (participants.User1Id != request.SenderId && participants.User2Id != request.SenderId)
+        {
+            throw new ArgumentException(
+                "Sender is not a participant of this match.",
+                nameof(request));
+        }
 
         Conversation? conversation = await conversationRepository
             .GetByMatchIdAsync(request.MatchId, ct)
