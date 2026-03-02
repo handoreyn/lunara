@@ -139,6 +139,48 @@ public sealed class SendMessageServiceTests
         Assert.Contains(SenderB.Value.ToString(), payload, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task SendAsync_WhenNoConversation_NewConversationHasCanonicalMatchParticipants()
+    {
+        // The service must use the participants returned by IMatchReadService,
+        // not any participant data that could be supplied by the caller.
+        Fixtures f = Build();
+
+        await f.Svc.SendAsync(DefaultRequest(sender: SenderA), CancellationToken.None);
+
+        Conversation? created = f.ConvRepo.AddedConversations.SingleOrDefault();
+        Assert.NotNull(created);
+        Assert.True(
+            (created.User1Id == SenderA && created.User2Id == SenderB) ||
+            (created.User1Id == SenderB && created.User2Id == SenderA),
+            "New conversation must use canonical match participants.");
+    }
+
+    [Fact]
+    public async Task SendAsync_WhenNoConversation_SenderNotAMatchParticipant_ThrowsArgumentException()
+    {
+        // An outsider cannot bootstrap a conversation for a match they are not part of.
+        Fixtures f = Build();
+        UserId outsider = new(Guid.NewGuid());
+
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => f.Svc.SendAsync(DefaultRequest(sender: outsider), CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task SendAsync_WhenNoConversation_SenderNotAMatchParticipant_NoConversationOrOutbox()
+    {
+        Fixtures f = Build();
+        UserId outsider = new(Guid.NewGuid());
+
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => f.Svc.SendAsync(DefaultRequest(sender: outsider), CancellationToken.None));
+
+        Assert.Equal(0, f.ConvRepo.AddCallCount);
+        Assert.Equal(0, f.Outbox.EnqueueCallCount);
+        Assert.Equal(0, f.Uow.SaveCallCount);
+    }
+
     // ── Conversation already exists ──────────────────────────────────────────
 
     [Fact]
