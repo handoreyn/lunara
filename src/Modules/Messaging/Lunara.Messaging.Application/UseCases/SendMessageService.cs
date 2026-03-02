@@ -67,11 +67,11 @@ public sealed class SendMessageService(
             return await PersistMessageAsync(conversation!, request, addConversation: isNewConversation, ct)
                 .ConfigureAwait(false);
         }
-        catch (Exception) when (isNewConversation)
+        catch (ConversationAlreadyExistsException) when (isNewConversation)
         {
             // A concurrent request won the race and inserted the conversation first.
-            // The UnitOfWork clears the change tracker on failure, so we can reload
-            // the existing conversation and retry without inserting.
+            // The UnitOfWork translated the unique-constraint violation and cleared
+            // the change tracker, so we can reload and retry without inserting.
             Conversation? existing = await conversationRepository
                 .GetByMatchIdAsync(request.MatchId, ct)
                 .ConfigureAwait(false);

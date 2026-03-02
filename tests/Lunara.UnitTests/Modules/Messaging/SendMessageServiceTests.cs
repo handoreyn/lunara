@@ -247,12 +247,13 @@ public sealed class SendMessageServiceTests
     [Fact]
     public async Task SendAsync_WhenConcurrentInsertRace_RetriesWithExistingConversation()
     {
-        // Arrange: no conversation yet, but AddAsync will throw (simulating a unique-violation)
-        // and the conflict conversation becomes visible on the retry GetByMatchId.
+        // Arrange: no conversation yet, but AddAsync will throw (simulating a unique-violation
+        // translated by EfMessagingUnitOfWork), and the conflict conversation becomes visible
+        // on the retry GetByMatchId.
         Conversation conflictConversation = Conversation.CreateFromMatch(AMatchId, SenderA, SenderB, FixedNow);
 
         Fixtures f = Build();
-        f.ConvRepo.ThrowOnAdd = new InvalidOperationException("unique constraint violation");
+        f.ConvRepo.ThrowOnAdd = new ConversationAlreadyExistsException(AMatchId);
         f.ConvRepo.ConflictConversation = conflictConversation;
 
         SendMessageResult result = await f.Svc.SendAsync(DefaultRequest(), CancellationToken.None);
@@ -271,10 +272,10 @@ public sealed class SendMessageServiceTests
     {
         // Arrange: AddAsync throws but GetByMatchId still returns null (no winner yet).
         Fixtures f = Build();
-        f.ConvRepo.ThrowOnAdd = new InvalidOperationException("unique constraint violation");
+        f.ConvRepo.ThrowOnAdd = new ConversationAlreadyExistsException(AMatchId);
         // ConflictConversation is null — store stays empty after the throw.
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<ConversationAlreadyExistsException>(
             () => f.Svc.SendAsync(DefaultRequest(), CancellationToken.None));
     }
 
