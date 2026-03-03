@@ -33,13 +33,15 @@ public sealed class Notification
         UserId userId,
         NotificationType type,
         string payloadJson,
-        DateTimeOffset createdAtUtc)
+        DateTimeOffset createdAtUtc,
+        DateTimeOffset? readAtUtc = null)
     {
         Id = id;
         UserId = userId;
         Type = type;
         PayloadJson = payloadJson;
         CreatedAtUtc = createdAtUtc;
+        ReadAtUtc = readAtUtc;
     }
 
     /// <summary>
@@ -61,6 +63,28 @@ public sealed class Notification
         ArgumentException.ThrowIfNullOrWhiteSpace(payloadJson);
 
         return new Notification(id, userId, type, payloadJson, createdAtUtc);
+    }
+
+    /// <summary>
+    /// Reconstitutes a <see cref="Notification"/> from persisted data without enforcing
+    /// creation-time invariants.
+    /// </summary>
+    /// <param name="id">The persisted notification identifier.</param>
+    /// <param name="userId">The owning user identifier.</param>
+    /// <param name="type">The persisted notification type.</param>
+    /// <param name="payloadJson">The persisted payload JSON string.</param>
+    /// <param name="createdAtUtc">The persisted creation timestamp.</param>
+    /// <param name="readAtUtc">The persisted read timestamp, or <see langword="null"/>.</param>
+    /// <returns>A fully rehydrated <see cref="Notification"/>.</returns>
+    public static Notification Reconstitute(
+        NotificationId id,
+        UserId userId,
+        NotificationType type,
+        string payloadJson,
+        DateTimeOffset createdAtUtc,
+        DateTimeOffset? readAtUtc)
+    {
+        return new Notification(id, userId, type, payloadJson, createdAtUtc, readAtUtc);
     }
 
     /// <summary>
