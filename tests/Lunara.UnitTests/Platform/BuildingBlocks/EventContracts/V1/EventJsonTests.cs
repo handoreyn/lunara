@@ -5,6 +5,12 @@ namespace Lunara.UnitTests.Platform.BuildingBlocks.EventContracts.V1;
 
 public sealed class EventJsonTests
 {
+    /// <summary>
+    /// A minimal test-only record with a nullable property to exercise
+    /// <see cref="EventJson.Serialize{T}"/> null-omission behavior.
+    /// </summary>
+    private sealed record TestEventWithNullable(Guid Id, string? OptionalText);
+
     // ── Serialize ──────────────────────────────────────────────────────────
 
     [Fact]
@@ -33,19 +39,12 @@ public sealed class EventJsonTests
     [Fact]
     public void Serialize_NullPropertiesAreOmitted()
     {
-        MessagingMessageSentV1 payload = new(
-            ConversationId: Guid.NewGuid(),
-            MessageId: Guid.NewGuid(),
-            MatchId: Guid.NewGuid(),
-            SenderId: Guid.NewGuid(),
-            RecipientId: Guid.NewGuid(),
-            Text: "hello",
-            OccurredAtUtc: DateTimeOffset.UtcNow);
+        TestEventWithNullable payload = new(Id: Guid.NewGuid(), OptionalText: null);
 
         string json = EventJson.Serialize(payload);
 
-        // Verify no explicit null values are written
-        Assert.DoesNotContain(":null", json, StringComparison.Ordinal);
+        // When OptionalText is null, the property should be absent from the JSON output.
+        Assert.DoesNotContain("optionalText", json, StringComparison.Ordinal);
     }
 
     [Fact]
