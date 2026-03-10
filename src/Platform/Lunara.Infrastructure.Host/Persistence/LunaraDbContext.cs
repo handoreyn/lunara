@@ -1,4 +1,5 @@
 using Lunara.Messaging.Infrastructure.Persistence;
+using Lunara.Notifications.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace Lunara.Infrastructure.Host.Persistence;
@@ -10,6 +11,12 @@ internal sealed class LunaraDbContext(DbContextOptions<LunaraDbContext> options)
 {
     /// <summary>Gets the outbox messages table used for the Transactional Outbox pattern.</summary>
     public DbSet<OutboxMessageEntity> OutboxMessages { get; set; } = null!;
+
+    /// <summary>Gets the inbox messages table used for the Inbox idempotency pattern.</summary>
+    public DbSet<InboxMessageEntity> InboxMessages { get; set; } = null!;
+
+    /// <summary>Gets the notifications table.</summary>
+    public DbSet<NotificationEntity> Notifications { get; set; } = null!;
 
     /// <summary>Gets the messaging conversations table.</summary>
     public DbSet<ConversationEntity> Conversations { get; set; } = null!;
@@ -43,6 +50,41 @@ internal sealed class LunaraDbContext(DbContextOptions<LunaraDbContext> options)
             // Index for the lock-expiry sweep.
             entity.HasIndex(e => e.LockedUntilUtc)
                   .HasDatabaseName("ix_outbox_locked_until");
+        });
+
+        modelBuilder.Entity<InboxMessageEntity>(entity =>
+        {
+            entity.ToTable("inbox_messages");
+
+            // Composite primary key — one row per (consumer, event).
+            entity.HasKey(e => new { e.Consumer, e.EventId });
+
+            entity.Property(e => e.Consumer)
+                  .HasMaxLength(100)
+                  .IsRequired();
+
+            // Unique index enforces the idempotency gate at the database level.
+            entity.HasIndex(e => new { e.Consumer, e.EventId })
+                  .IsUnique()
+                  .HasDatabaseName("ix_inbox_consumer_event_id");
+
+            // Index to support querying unprocessed or recently processed messages.
+            entity.HasIndex(e => e.ProcessedAtUtc)
+                  .HasDatabaseName("ix_inbox_processed_at");
+        });
+
+        modelBuilder.Entity<NotificationEntity>(entity =>
+        {
+            entity.ToTable("notifications_notifications");
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.PayloadJson)
+                  .IsRequired();
+
+            // Composite index: fetch all notifications for a user ordered by newest first.
+            entity.HasIndex(e => new { e.UserId, e.CreatedAtUtc })
+                  .IsDescending(false, true)
+                  .HasDatabaseName("ix_notifications_user_id_created_at");
         });
 
         modelBuilder.Entity<ConversationEntity>(entity =>

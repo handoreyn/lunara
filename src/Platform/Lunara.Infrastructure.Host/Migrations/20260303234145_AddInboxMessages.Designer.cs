@@ -3,6 +3,7 @@ using System;
 using Lunara.Infrastructure.Host.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Lunara.Infrastructure.Host.Migrations
 {
     [DbContext(typeof(LunaraDbContext))]
-    partial class LunaraDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260303234145_AddInboxMessages")]
+    partial class AddInboxMessages
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -147,37 +150,6 @@ namespace Lunara.Infrastructure.Host.Migrations
                         .HasDatabaseName("ix_messaging_messages_conversation_id");
 
                     b.ToTable("messaging_messages", (string)null);
-                });
-
-            modelBuilder.Entity("Lunara.Notifications.Infrastructure.Persistence.NotificationEntity", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("PayloadJson")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTimeOffset?>("ReadAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("Type")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId", "CreatedAtUtc")
-                        .IsDescending(false, true)
-                        .HasDatabaseName("ix_notifications_user_id_created_at");
-
-                    b.ToTable("notifications_notifications", (string)null);
                 });
 
             modelBuilder.Entity("Lunara.Messaging.Infrastructure.Persistence.MessageEntity", b =>

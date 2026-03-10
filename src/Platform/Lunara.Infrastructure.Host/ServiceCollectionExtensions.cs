@@ -1,10 +1,14 @@
 using Lunara.Infrastructure.Host.Messaging;
+using Lunara.Infrastructure.Host.Notifications;
 using Lunara.Infrastructure.Host.Social;
 using Lunara.Messaging.Application.UseCases;
 using Lunara.Messaging.Infrastructure.DependencyInjection;
+using Lunara.Notifications.Application.UseCases;
+using Lunara.Notifications.Infrastructure.DependencyInjection;
 using Lunara.Social.Application.UseCases;
 using Microsoft.Extensions.DependencyInjection;
 using MessagingPorts = Lunara.Messaging.Application.Ports;
+using NotificationsPorts = Lunara.Notifications.Application.Ports;
 using SocialPorts = Lunara.Social.Application.Ports;
 
 namespace Lunara.Infrastructure.Host;
@@ -51,6 +55,17 @@ public static class ServiceCollectionExtensions
 
         // Scoped: use-case service resolved once per request.
         services.AddScoped<SendMessageService>();
+
+        // --- Notifications module ---
+        // Singleton: stateless wall-clock; safe to share.
+        services.AddSingleton<NotificationsPorts.IClock, NotificationsSystemClock>();
+
+        // Scoped: EF-backed repository — registered via the infrastructure extension.
+        services.AddNotificationsPersistence();
+        services.AddScoped<NotificationsPorts.IUnitOfWork, EfNotificationsUnitOfWork>();
+
+        // Scoped: use-case service resolved once per request.
+        services.AddScoped<CreateNotificationService>();
 
         return services;
     }
