@@ -291,9 +291,9 @@ internal sealed partial class KafkaConsumerHostedService(
         ILogger logger, int count, string topic, Guid eventId);
 
     [LoggerMessage(Level = LogLevel.Error,
-        Message = "Failed to deserialise payload for event type {EventType} (eventId: {EventId}, correlationId: {CorrelationId}). Inbox row left unprocessed.")]
+        Message = "Failed to deserialise payload for topic {Topic} (eventId: {EventId}, correlationId: {CorrelationId}). Inbox row marked as processed to prevent poison-message loop.")]
     private static partial void LogDeserializationFailed(
-        ILogger logger, Exception ex, string eventType, string? correlationId, Guid eventId);
+        ILogger logger, Exception ex, string topic, string? correlationId, Guid eventId);
 
     [LoggerMessage(Level = LogLevel.Warning,
         Message = "Received event {EventId} on unknown topic {Topic}. Skipping.")]
