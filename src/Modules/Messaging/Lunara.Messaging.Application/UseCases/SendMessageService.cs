@@ -1,4 +1,4 @@
-using System.Text.Json;
+using Lunara.BuildingBlocks.EventContracts.V1;
 using Lunara.BuildingBlocks.Outbox;
 using Lunara.Messaging.Application.DTOs;
 using Lunara.Messaging.Application.Exceptions;
@@ -115,16 +115,14 @@ public sealed class SendMessageService(
             .AddAsync(message, ct)
             .ConfigureAwait(false);
 
-        string payloadJson = JsonSerializer.Serialize(new
-        {
-            conversationId = evt.ConversationId.Value,
-            messageId = evt.MessageId.Value,
-            matchId = request.MatchId.Value,
-            senderId = evt.SenderId.Value,
-            recipientId = evt.RecipientId.Value,
-            text = evt.Text,
-            occurredAtUtc = evt.OccurredAtUtc,
-        });
+        string payloadJson = EventJson.Serialize(new MessagingMessageSentV1(
+            ConversationId: evt.ConversationId.Value,
+            MessageId: evt.MessageId.Value,
+            MatchId: request.MatchId.Value,
+            SenderId: evt.SenderId.Value,
+            RecipientId: evt.RecipientId.Value,
+            Text: evt.Text,
+            OccurredAtUtc: evt.OccurredAtUtc));
 
         await outboxWriter.EnqueueAsync(
             "messaging.message-sent.v1",

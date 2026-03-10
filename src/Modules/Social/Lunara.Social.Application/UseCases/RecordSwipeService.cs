@@ -1,10 +1,10 @@
+using Lunara.BuildingBlocks.EventContracts.V1;
 using Lunara.BuildingBlocks.Outbox;
 using Lunara.Social.Application.DTOs;
 using Lunara.Social.Application.Ports;
 using Lunara.Social.Domain;
 using Lunara.Social.Domain.DomainEvents;
 using Lunara.Social.Domain.Entities;
-using System.Text.Json;
 
 namespace Lunara.Social.Application.UseCases;
 
@@ -84,13 +84,11 @@ public sealed class RecordSwipeService(
             {
                 await matchRepository.AddAsync(match, ct).ConfigureAwait(false);
 
-                string payloadJson = JsonSerializer.Serialize(new
-                {
-                    matchId = match.Id.Value,
-                    user1Id = match.User1Id.Value,
-                    user2Id = match.User2Id.Value,
-                    occurredAtUtc = now,
-                });
+                string payloadJson = EventJson.Serialize(new SocialMatchCreatedV1(
+                    MatchId: match.Id.Value,
+                    User1Id: match.User1Id.Value,
+                    User2Id: match.User2Id.Value,
+                    OccurredAtUtc: now));
 
                 await outboxWriter.EnqueueAsync(
                     "social.match-created.v1",
