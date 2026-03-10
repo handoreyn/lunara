@@ -132,10 +132,14 @@ internal sealed partial class KafkaConsumerHostedService(
             }
             catch (JsonException ex)
             {
-                // Payload could not be deserialised — log the failure, do NOT mark the inbox
-                // row as processed, and do NOT rethrow so the Kafka offset is still committed
-                // (prevents a poison-message retry loop).
+                // Payload could not be deserialised — log the failure, mark the inbox
+                // row as processed so it does not remain permanently "in-flight", and
+                // do NOT rethrow so the Kafka offset is still committed (prevents a
+                // poison-message retry loop).
                 LogDeserializationFailed(logger, ex, topic, correlationId, eventId);
+
+                await inbox.MarkProcessedAsync(eventId, ConsumerName, DateTimeOffset.UtcNow, ct)
+                    .ConfigureAwait(false);
             }
             catch (Exception)
             {
