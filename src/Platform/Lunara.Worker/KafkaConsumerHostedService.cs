@@ -132,14 +132,11 @@ internal sealed partial class KafkaConsumerHostedService(
             }
             catch (JsonException ex)
             {
-                // Payload could not be deserialised — log the failure, mark the inbox
-                // row as processed so it does not remain permanently "in-flight", and
-                // do NOT rethrow so the Kafka offset is still committed (prevents a
-                // poison-message retry loop).
+                // Payload could not be deserialised — log the failure and do NOT mark
+                // the inbox row as processed, so the inbox state does not treat this as
+                // a successfully handled event. We also do NOT rethrow so the Kafka
+                // offset is still committed (prevents a poison-message retry loop).
                 LogDeserializationFailed(logger, ex, topic, correlationId, eventId);
-
-                await inbox.MarkProcessedAsync(eventId, ConsumerName, DateTimeOffset.UtcNow, ct)
-                    .ConfigureAwait(false);
             }
             catch (Exception)
             {
@@ -291,7 +288,7 @@ internal sealed partial class KafkaConsumerHostedService(
         ILogger logger, int count, string topic, Guid eventId);
 
     [LoggerMessage(Level = LogLevel.Error,
-        Message = "Failed to deserialise payload for topic {Topic} (eventId: {EventId}, correlationId: {CorrelationId}). Inbox row marked as processed to prevent poison-message loop.")]
+        Message = "Failed to deserialise payload for topic {Topic} (eventId: {EventId}, correlationId: {CorrelationId}). Inbox row left unprocessed; Kafka offset committed to prevent poison-message loop.")]
     private static partial void LogDeserializationFailed(
         ILogger logger, Exception ex, string topic, string? correlationId, Guid eventId);
 
