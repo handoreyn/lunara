@@ -1,8 +1,8 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Confluent.Kafka;
+using Lunara.BuildingBlocks.EventContracts.V1;
 using Lunara.BuildingBlocks.Inbox;
 using Lunara.Infrastructure.Host.Options;
 using Lunara.Notifications.Application.UseCases;
@@ -130,6 +130,14 @@ internal sealed partial class KafkaConsumerHostedService(
 
                 LogEventProcessed(logger, topic, eventId, correlationId);
             }
+            catch (JsonException ex)
+            {
+                // Payload could not be deserialised — log the failure and do NOT mark
+                // the inbox row as processed, so the inbox state does not treat this as
+                // a successfully handled event. We also do NOT rethrow so the Kafka
+                // offset is still committed (prevents a poison-message retry loop).
+                LogDeserializationFailed(logger, ex, topic, correlationId, eventId);
+            }
             catch (Exception)
             {
                 // Allow the exception to bubble — caller backs off and re-consumes
@@ -174,14 +182,7 @@ internal sealed partial class KafkaConsumerHostedService(
         CreateNotificationService notificationService,
         CancellationToken ct)
     {
-        MatchCreatedPayload? payload =
-            JsonSerializer.Deserialize(value, WorkerJsonContext.Default.MatchCreatedPayload);
-
-        if (payload is null)
-        {
-            LogDeserializationFailed(logger, "social.match-created.v1", eventId);
-            return;
-        }
+        SocialMatchCreatedV1 payload = EventJson.Deserialize<SocialMatchCreatedV1>(value);
 
         int count = await notificationService.CreateMatchNotificationsAsync(
             matchId: payload.MatchId,
@@ -200,14 +201,7 @@ internal sealed partial class KafkaConsumerHostedService(
         CreateNotificationService notificationService,
         CancellationToken ct)
     {
-        MessageSentPayload? payload =
-            JsonSerializer.Deserialize(value, WorkerJsonContext.Default.MessageSentPayload);
-
-        if (payload is null)
-        {
-            LogDeserializationFailed(logger, "messaging.message-sent.v1", eventId);
-            return;
-        }
+        MessagingMessageSentV1 payload = EventJson.Deserialize<MessagingMessageSentV1>(value);
 
         Lunara.Notifications.Domain.ValueObjects.NotificationId notificationId =
             await notificationService.CreateMessageReceivedNotificationAsync(
@@ -293,10 +287,10 @@ internal sealed partial class KafkaConsumerHostedService(
     private static partial void LogNotificationsCreated(
         ILogger logger, int count, string topic, Guid eventId);
 
-    [LoggerMessage(Level = LogLevel.Warning,
-        Message = "Failed to deserialise payload for event type {EventType} (eventId: {EventId}). Skipping.")]
+    [LoggerMessage(Level = LogLevel.Error,
+        Message = "Failed to deserialise payload for topic {Topic} (eventId: {EventId}, correlationId: {CorrelationId}). Inbox row left unprocessed; Kafka offset committed to prevent poison-message loop.")]
     private static partial void LogDeserializationFailed(
-        ILogger logger, string eventType, Guid eventId);
+        ILogger logger, Exception ex, string topic, string? correlationId, Guid eventId);
 
     [LoggerMessage(Level = LogLevel.Warning,
         Message = "Received event {EventId} on unknown topic {Topic}. Skipping.")]
@@ -315,27 +309,3 @@ internal sealed partial class KafkaConsumerHostedService(
     [LoggerMessage(Level = LogLevel.Information, Message = "Kafka consumer stopped.")]
     private static partial void LogConsumerStopped(ILogger logger);
 }
-
-// ── Payload DTOs ─────────────────────────────────────────────────────────────
-
-/// <summary>Payload shape published by the Social module for the match-created event.</summary>
-internal sealed record MatchCreatedPayload(
-    [property: JsonPropertyName("matchId")] Guid MatchId,
-    [property: JsonPropertyName("user1Id")] Guid User1Id,
-    [property: JsonPropertyName("user2Id")] Guid User2Id,
-    [property: JsonPropertyName("occurredAtUtc")] DateTimeOffset OccurredAtUtc);
-
-/// <summary>Payload shape published by the Messaging module for the message-sent event.</summary>
-internal sealed record MessageSentPayload(
-    [property: JsonPropertyName("conversationId")] Guid ConversationId,
-    [property: JsonPropertyName("messageId")] Guid MessageId,
-    [property: JsonPropertyName("matchId")] Guid MatchId,
-    [property: JsonPropertyName("senderId")] Guid SenderId,
-    [property: JsonPropertyName("recipientId")] Guid RecipientId,
-    [property: JsonPropertyName("text")] string Text,
-    [property: JsonPropertyName("occurredAtUtc")] DateTimeOffset OccurredAtUtc);
-
-/// <summary>Source-generated JSON serialisation context for Worker payload types.</summary>
-[JsonSerializable(typeof(MatchCreatedPayload))]
-[JsonSerializable(typeof(MessageSentPayload))]
-internal sealed partial class WorkerJsonContext : JsonSerializerContext;
