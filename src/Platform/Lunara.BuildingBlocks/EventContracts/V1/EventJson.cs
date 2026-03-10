@@ -27,10 +27,7 @@ public static class EventJson
     /// </exception>
     public static string Serialize<T>(T payload)
     {
-        if (payload is null)
-        {
-            throw new ArgumentNullException(nameof(payload), "Event payload cannot be null.");
-        }
+        ArgumentNullException.ThrowIfNull(payload);
         return JsonSerializer.Serialize(payload, _options);
     }
 
