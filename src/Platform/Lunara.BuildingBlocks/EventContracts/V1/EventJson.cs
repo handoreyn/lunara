@@ -22,8 +22,15 @@ public static class EventJson
     /// <typeparam name="T">The event contract type to serialize.</typeparam>
     /// <param name="payload">The event payload instance to serialize.</param>
     /// <returns>A JSON string representation of <paramref name="payload"/>.</returns>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="payload"/> is <c>null</c> for reference types.
+    /// </exception>
     public static string Serialize<T>(T payload)
     {
+        if (payload is null)
+        {
+            throw new ArgumentNullException(nameof(payload), "Event payload cannot be null.");
+        }
         return JsonSerializer.Serialize(payload, _options);
     }
 
