@@ -55,13 +55,14 @@ public sealed class Report
     /// <param name="reporterUserId">The user filing the report.</param>
     /// <param name="targetUserId">The user being reported.</param>
     /// <param name="reason">A short description of the reason for the report. Must not exceed <see cref="MaxReasonLength"/> characters.</param>
-    /// <param name="details">Optional additional details.</param>
+    /// <param name="details">Optional additional details. Must not exceed <see cref="MaxDetailsLength"/> characters when provided.</param>
     /// <param name="createdAtUtc">The UTC timestamp of the report action.</param>
     /// <returns>A new <see cref="Report"/> instance.</returns>
     /// <exception cref="ArgumentException">
     ///   Thrown when <paramref name="reporterUserId"/> equals <paramref name="targetUserId"/>,
     ///   or when <paramref name="reason"/> exceeds <see cref="MaxReasonLength"/> characters,
-    ///   or when <paramref name="reason"/> is null or empty.
+    ///   or when <paramref name="reason"/> is null or empty,
+    ///   or when <paramref name="details"/> exceeds <see cref="MaxDetailsLength"/> characters.
     /// </exception>
     public static Report Create(
         UserId reporterUserId,
@@ -84,6 +85,13 @@ public sealed class Report
             throw new ArgumentException(
                 $"Reason must not exceed {MaxReasonLength} characters.",
                 nameof(reason));
+        }
+
+        if (details is not null && details.Length > MaxDetailsLength)
+        {
+            throw new ArgumentException(
+                $"Details must not exceed {MaxDetailsLength} characters.",
+                nameof(details));
         }
 
         ReportId id = new(Guid.NewGuid());
