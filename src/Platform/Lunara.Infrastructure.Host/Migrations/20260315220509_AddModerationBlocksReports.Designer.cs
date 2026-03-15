@@ -3,6 +3,7 @@ using System;
 using Lunara.Infrastructure.Host.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Lunara.Infrastructure.Host.Migrations
 {
     [DbContext(typeof(LunaraDbContext))]
-    partial class LunaraDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260315220509_AddModerationBlocksReports")]
+    partial class AddModerationBlocksReports
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

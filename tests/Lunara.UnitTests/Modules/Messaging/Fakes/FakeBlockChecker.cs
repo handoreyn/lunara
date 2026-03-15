@@ -21,6 +21,6 @@ public sealed class FakeBlockChecker : IBlockChecker
     /// <inheritdoc/>
     public Task<bool> IsBlockedAsync(Guid userA, Guid userB, CancellationToken ct)
     {
-        return Task.FromResult(_blocked.Contains((userA, userB)) || _blocked.Contains((userB, userA)));
+        return Task.FromResult(_blocked.Contains((userA, userB)));
     }
 }
