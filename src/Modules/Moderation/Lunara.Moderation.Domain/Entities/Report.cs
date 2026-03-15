@@ -12,6 +12,9 @@ public sealed class Report
     /// <summary>Maximum allowed length for the <see cref="Reason"/> field.</summary>
     public const int MaxReasonLength = 1000;
 
+    /// <summary>Maximum allowed length for the <see cref="Details"/> field.</summary>
+    public const int MaxDetailsLength = 1000;
+
     /// <summary>Gets the unique identifier of this report.</summary>
     public ReportId Id { get; }
 

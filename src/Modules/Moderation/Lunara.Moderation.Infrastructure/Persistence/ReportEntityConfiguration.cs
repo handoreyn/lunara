@@ -25,7 +25,7 @@ internal sealed class ReportEntityConfiguration : IEntityTypeConfiguration<Repor
                .IsRequired();
 
         builder.Property(e => e.Details)
-               .HasMaxLength(Report.MaxReasonLength);
+               .HasMaxLength(Report.MaxDetailsLength);
 
         builder.Property(e => e.CreatedAtUtc)
                .IsRequired();
