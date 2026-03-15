@@ -32,7 +32,8 @@ public sealed class SendMessageServiceTests
 
     private static Fixtures Build(
         bool matchExists = true,
-        Conversation? existingConversation = null)
+        Conversation? existingConversation = null,
+        FakeBlockChecker? blockChecker = null)
     {
         FakeMatchReadService matchSvc = new();
         if (matchExists)
@@ -51,7 +52,7 @@ public sealed class SendMessageServiceTests
         FakeClock clock = new(FixedNow);
         FakeOutboxWriter outbox = new();
 
-        SendMessageService svc = new(matchSvc, convRepo, msgRepo, uow, clock, outbox);
+        SendMessageService svc = new(matchSvc, convRepo, msgRepo, uow, clock, outbox, blockChecker ?? new FakeBlockChecker());
         return new Fixtures(svc, matchSvc, convRepo, msgRepo, uow, outbox);
     }
 
@@ -400,5 +401,42 @@ public sealed class SendMessageServiceTests
         await f.Svc.SendAsync(req, CancellationToken.None);
 
         Assert.Equal("test-corr-id", f.Outbox.LastCorrelationId);
+    }
+
+    // ── Block enforcement ──────────────────────────────────────────────────
+
+    [Fact]
+    public async Task SendAsync_WhenUsersAreBlocked_ThrowsArgumentException()
+    {
+        FakeBlockChecker blockChecker = new();
+        blockChecker.SetBlocked(SenderA.Value, SenderB.Value);
+        Fixtures f = Build(blockChecker: blockChecker);
+
+        ArgumentException ex = await Assert.ThrowsAsync<ArgumentException>(
+            () => f.Svc.SendAsync(DefaultRequest(), CancellationToken.None));
+
+        Assert.Contains("block", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task SendAsync_WhenUsersAreBlocked_NoRepoCallsAndNoOutboxEnqueue()
+    {
+        FakeBlockChecker blockChecker = new();
+        blockChecker.SetBlocked(SenderB.Value, SenderA.Value);
+        Fixtures f = Build(blockChecker: blockChecker);
+
+        try
+        {
+            await f.Svc.SendAsync(DefaultRequest(), CancellationToken.None);
+        }
+        catch (ArgumentException)
+        {
+            // expected
+        }
+
+        Assert.Equal(0, f.ConvRepo.AddCallCount);
+        Assert.Equal(0, f.MsgRepo.AddCallCount);
+        Assert.Equal(0, f.Outbox.EnqueueCallCount);
+        Assert.Equal(0, f.Uow.SaveCallCount);
     }
 }

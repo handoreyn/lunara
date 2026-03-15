@@ -1,13 +1,18 @@
+using Lunara.BuildingBlocks.Moderation;
 using Lunara.Infrastructure.Host.Messaging;
+using Lunara.Infrastructure.Host.Moderation;
 using Lunara.Infrastructure.Host.Notifications;
 using Lunara.Infrastructure.Host.Social;
 using Lunara.Messaging.Application.UseCases;
 using Lunara.Messaging.Infrastructure.DependencyInjection;
+using Lunara.Moderation.Application.UseCases;
+using Lunara.Moderation.Infrastructure.DependencyInjection;
 using Lunara.Notifications.Application.UseCases;
 using Lunara.Notifications.Infrastructure.DependencyInjection;
 using Lunara.Social.Application.UseCases;
 using Microsoft.Extensions.DependencyInjection;
 using MessagingPorts = Lunara.Messaging.Application.Ports;
+using ModerationPorts = Lunara.Moderation.Application.Ports;
 using NotificationsPorts = Lunara.Notifications.Application.Ports;
 using SocialPorts = Lunara.Social.Application.Ports;
 
@@ -66,6 +71,19 @@ public static class ServiceCollectionExtensions
 
         // Scoped: use-case service resolved once per request.
         services.AddScoped<CreateNotificationService>();
+
+        // --- Moderation module ---
+        // Scoped: EF-backed repositories — registered via the infrastructure extension.
+        services.AddModerationPersistence();
+        services.AddScoped<ModerationPorts.IUnitOfWork, EfModerationUnitOfWork>();
+
+        // Scoped: use-case services resolved once per request.
+        services.AddScoped<BlockUserService>();
+        services.AddScoped<ReportUserService>();
+
+        // Scoped: adapts IBlockRepository to the cross-cutting IBlockChecker interface used by
+        // Social and Messaging modules to enforce block rules.
+        services.AddScoped<IBlockChecker, BlockCheckerAdapter>();
 
         return services;
     }

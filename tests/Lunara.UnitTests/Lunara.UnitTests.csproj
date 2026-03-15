@@ -34,6 +34,8 @@
     <ProjectReference Include="..\..\src\Modules\Social\Lunara.Social.Application\Lunara.Social.Application.csproj" />
     <ProjectReference Include="..\..\src\Modules\Messaging\Lunara.Messaging.Domain\Lunara.Messaging.Domain.csproj" />
     <ProjectReference Include="..\..\src\Modules\Messaging\Lunara.Messaging.Application\Lunara.Messaging.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Moderation\Lunara.Moderation.Domain\Lunara.Moderation.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Moderation\Lunara.Moderation.Application\Lunara.Moderation.Application.csproj" />
   </ItemGroup>
 
 </Project>

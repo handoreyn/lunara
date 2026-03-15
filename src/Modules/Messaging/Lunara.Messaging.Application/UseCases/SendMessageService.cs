@@ -1,4 +1,5 @@
 using Lunara.BuildingBlocks.EventContracts.V1;
+using Lunara.BuildingBlocks.Moderation;
 using Lunara.BuildingBlocks.Outbox;
 using Lunara.Messaging.Application.DTOs;
 using Lunara.Messaging.Application.Exceptions;
@@ -18,7 +19,8 @@ public sealed class SendMessageService(
     IMessageRepository messageRepository,
     IUnitOfWork unitOfWork,
     IClock clock,
-    IOutboxWriter outboxWriter)
+    IOutboxWriter outboxWriter,
+    IBlockChecker blockChecker)
 {
     /// <summary>
     /// Sends a message and returns the identifiers of the affected conversation and message.
@@ -51,6 +53,18 @@ public sealed class SendMessageService(
         {
             throw new ArgumentException(
                 "Sender is not a participant of this match.",
+                nameof(request));
+        }
+
+        // Block check: if either participant has blocked the other, sending is not allowed.
+        bool blocked = await blockChecker
+            .IsBlockedAsync(participants.User1Id.Value, participants.User2Id.Value, ct)
+            .ConfigureAwait(false);
+
+        if (blocked)
+        {
+            throw new ArgumentException(
+                "Cannot send a message: a block exists between the participants.",
                 nameof(request));
         }
 

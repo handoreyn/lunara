@@ -1,4 +1,5 @@
 using Lunara.BuildingBlocks.EventContracts.V1;
+using Lunara.BuildingBlocks.Moderation;
 using Lunara.BuildingBlocks.Outbox;
 using Lunara.Social.Application.DTOs;
 using Lunara.Social.Application.Ports;
@@ -17,7 +18,8 @@ public sealed class RecordSwipeService(
     IMatchRepository matchRepository,
     IUnitOfWork unitOfWork,
     IClock clock,
-    IOutboxWriter outboxWriter)
+    IOutboxWriter outboxWriter,
+    IBlockChecker blockChecker)
 {
     /// <summary>
     /// Processes a swipe and returns the outcome.
@@ -48,6 +50,16 @@ public sealed class RecordSwipeService(
 
         // Pass: nothing to persist.
         if (request.Action == SwipeActionType.Pass)
+        {
+            return new RecordSwipeResult(LikeRecorded: false, MatchCreated: false, MatchId: null);
+        }
+
+        // Block check: if either user has blocked the other, swipe is a no-op.
+        bool blocked = await blockChecker
+            .IsBlockedAsync(request.ActorId.Value, request.TargetId.Value, ct)
+            .ConfigureAwait(false);
+
+        if (blocked)
         {
             return new RecordSwipeResult(LikeRecorded: false, MatchCreated: false, MatchId: null);
         }

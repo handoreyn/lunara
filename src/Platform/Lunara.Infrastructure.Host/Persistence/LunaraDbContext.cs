@@ -1,4 +1,5 @@
 using Lunara.Messaging.Infrastructure.Persistence;
+using Lunara.Moderation.Infrastructure.Persistence;
 using Lunara.Notifications.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -23,6 +24,12 @@ internal sealed class LunaraDbContext(DbContextOptions<LunaraDbContext> options)
 
     /// <summary>Gets the messaging messages table.</summary>
     public DbSet<MessageEntity> Messages { get; set; } = null!;
+
+    /// <summary>Gets the moderation blocks table.</summary>
+    public DbSet<BlockEntity> Blocks { get; set; } = null!;
+
+    /// <summary>Gets the moderation reports table.</summary>
+    public DbSet<ReportEntity> Reports { get; set; } = null!;
 
     /// <inheritdoc/>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -114,6 +121,33 @@ internal sealed class LunaraDbContext(DbContextOptions<LunaraDbContext> options)
                   .WithMany()
                   .HasForeignKey(e => e.ConversationId)
                   .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<BlockEntity>(entity =>
+        {
+            entity.ToTable("moderation_blocks");
+            entity.HasKey(e => e.Id);
+
+            // Composite index: quickly find if blocker→blocked row already exists.
+            entity.HasIndex(e => new { e.BlockerUserId, e.BlockedUserId })
+                  .IsUnique()
+                  .HasDatabaseName("ix_moderation_blocks_blocker_blocked");
+        });
+
+        modelBuilder.Entity<ReportEntity>(entity =>
+        {
+            entity.ToTable("moderation_reports");
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Reason)
+                  .HasMaxLength(200)
+                  .IsRequired();
+
+            entity.Property(e => e.Details)
+                  .HasMaxLength(2000);
+
+            entity.HasIndex(e => e.TargetUserId)
+                  .HasDatabaseName("ix_moderation_reports_target_user_id");
         });
     }
 }
