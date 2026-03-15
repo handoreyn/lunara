@@ -10,6 +10,7 @@ using MessagingClock = Lunara.Messaging.Application.Ports.IClock;
 using MessagingMessageRepository = Lunara.Messaging.Application.Ports.IMessageRepository;
 using MessagingUnitOfWork = Lunara.Messaging.Application.Ports.IUnitOfWork;
 using ModerationBlockRepository = Lunara.Moderation.Application.Ports.IBlockRepository;
+using ModerationClock = Lunara.Moderation.Application.Ports.IClock;
 using ModerationReportRepository = Lunara.Moderation.Application.Ports.IReportRepository;
 using ModerationUnitOfWork = Lunara.Moderation.Application.Ports.IUnitOfWork;
 using SocialClock = Lunara.Social.Application.Ports.IClock;
@@ -49,6 +50,9 @@ public static class ServiceCollectionExtensions
         // Singletons: in-memory stores share state across all requests in a process.
         services.AddSingleton<ModerationBlockRepository, InMemoryBlockRepository>();
         services.AddSingleton<ModerationReportRepository, InMemoryReportRepository>();
+
+        // Singleton: stateless wall-clock; safe to share.
+        services.AddSingleton<ModerationClock, ModerationSystemClock>();
 
         // IBlockChecker bridges the Moderation module to Social and Messaging modules.
         services.AddSingleton<IBlockChecker, InMemoryBlockChecker>();
