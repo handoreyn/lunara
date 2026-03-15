@@ -1,3 +1,4 @@
+using Lunara.Moderation.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
 namespace Lunara.Infrastructure.Host.Persistence;
@@ -37,5 +38,9 @@ internal sealed class LunaraDbContext(DbContextOptions<LunaraDbContext> options)
             entity.HasIndex(e => e.LockedUntilUtc)
                   .HasDatabaseName("ix_outbox_locked_until");
         });
+
+        // Apply all entity configurations defined in Lunara.Moderation.Infrastructure.
+        modelBuilder.ApplyConfigurationsFromAssembly(
+            typeof(ModerationInfrastructureAssemblyMarker).Assembly);
     }
 }

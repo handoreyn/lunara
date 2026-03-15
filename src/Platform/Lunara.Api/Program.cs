@@ -1,9 +1,13 @@
+using Lunara.Api.Moderation;
 using Lunara.Api.Social;
 using Lunara.Infrastructure.Host;
+using Lunara.Moderation.Application.DTOs;
+using Lunara.Moderation.Application.UseCases;
 using Lunara.Social.Application.DTOs;
 using Lunara.Social.Application.UseCases;
 using Lunara.Social.Domain;
-using Lunara.Social.Domain.ValueObjects;
+using ModerationUserId = Lunara.Moderation.Domain.ValueObjects.UserId;
+using SocialUserId = Lunara.Social.Domain.ValueObjects.UserId;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -50,11 +54,84 @@ app.MapPost("/v1/social/swipe", async (
         correlationId = null;
     }
 
-    RecordSwipeRequest request = new(new UserId(actorGuid), new UserId(body.TargetUserId), action)
+    RecordSwipeRequest request = new(new SocialUserId(actorGuid), new SocialUserId(body.TargetUserId), action)
     {
         CorrelationId = correlationId,
     };
     RecordSwipeResult result = await svc.RecordAsync(request, ct).ConfigureAwait(false);
+    return Results.Ok(result);
+});
+
+app.MapPost("/v1/moderation/block", async (
+    HttpContext http,
+    BlockBody body,
+    BlockUserService svc,
+    CancellationToken ct) =>
+{
+    string? blockerIdHeader = http.Request.Headers["X-User-Id"];
+
+    if (string.IsNullOrEmpty(blockerIdHeader)
+        || !Guid.TryParse(blockerIdHeader, out Guid blockerGuid)
+        || blockerGuid == Guid.Empty)
+    {
+        return Results.BadRequest("Missing or invalid X-User-Id header.");
+    }
+
+    if (body.BlockedUserId == Guid.Empty)
+    {
+        return Results.BadRequest("blockedUserId must not be empty.");
+    }
+
+    if (blockerGuid == body.BlockedUserId)
+    {
+        return Results.BadRequest("A user cannot block themselves.");
+    }
+
+    BlockUserRequest request = new(
+        new ModerationUserId(blockerGuid),
+        new ModerationUserId(body.BlockedUserId));
+
+    BlockUserResult result = await svc.BlockAsync(request, ct).ConfigureAwait(false);
+    return Results.Ok(result);
+});
+
+app.MapPost("/v1/moderation/report", async (
+    HttpContext http,
+    ReportBody body,
+    ReportUserService svc,
+    CancellationToken ct) =>
+{
+    string? reporterIdHeader = http.Request.Headers["X-User-Id"];
+
+    if (string.IsNullOrEmpty(reporterIdHeader)
+        || !Guid.TryParse(reporterIdHeader, out Guid reporterGuid)
+        || reporterGuid == Guid.Empty)
+    {
+        return Results.BadRequest("Missing or invalid X-User-Id header.");
+    }
+
+    if (body.TargetUserId == Guid.Empty)
+    {
+        return Results.BadRequest("targetUserId must not be empty.");
+    }
+
+    if (reporterGuid == body.TargetUserId)
+    {
+        return Results.BadRequest("A user cannot report themselves.");
+    }
+
+    if (string.IsNullOrWhiteSpace(body.Reason))
+    {
+        return Results.BadRequest("reason must not be empty.");
+    }
+
+    ReportUserRequest request = new(
+        new ModerationUserId(reporterGuid),
+        new ModerationUserId(body.TargetUserId),
+        body.Reason,
+        body.Details);
+
+    ReportUserResult result = await svc.ReportAsync(request, ct).ConfigureAwait(false);
     return Results.Ok(result);
 });
 

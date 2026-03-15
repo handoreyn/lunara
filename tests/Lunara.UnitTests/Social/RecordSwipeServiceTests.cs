@@ -16,14 +16,15 @@ public sealed class RecordSwipeServiceTests
     private static readonly UserId TargetId = new(new Guid("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"));
 
     private static (RecordSwipeService Svc, FakeLikeRepository Likes, FakeMatchRepository Matches, FakeUnitOfWork Uow, FakeOutboxWriter Outbox)
-        Build(FakeLikeRepository? likes = null)
+        Build(FakeLikeRepository? likes = null, FakeBlockChecker? blockChecker = null)
     {
         FakeLikeRepository likeRepo = likes ?? new FakeLikeRepository();
         FakeMatchRepository matchRepo = new();
         FakeUnitOfWork uow = new();
         FakeClock clock = new(FixedNow);
         FakeOutboxWriter outbox = new();
-        RecordSwipeService svc = new(likeRepo, matchRepo, uow, clock, outbox);
+        FakeBlockChecker checker = blockChecker ?? new FakeBlockChecker();
+        RecordSwipeService svc = new(likeRepo, matchRepo, uow, clock, outbox, checker);
         return (svc, likeRepo, matchRepo, uow, outbox);
     }
 
@@ -191,6 +192,34 @@ public sealed class RecordSwipeServiceTests
             CancellationToken.None);
 
         Assert.Equal(0, outbox.EnqueueCallCount);
+    }
+
+    /// <summary>Swiping on a blocked user throws <see cref="InvalidOperationException"/>.</summary>
+    [Fact]
+    public async Task Like_BlockedUser_ActorBlockedTarget_Throws_InvalidOperationException()
+    {
+        FakeBlockChecker blockChecker = new();
+        blockChecker.SeedBlock(ActorId.Value, TargetId.Value);
+        (RecordSwipeService svc, _, _, _, _) = Build(blockChecker: blockChecker);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            svc.RecordAsync(
+                new RecordSwipeRequest(ActorId, TargetId, SwipeActionType.Like),
+                CancellationToken.None));
+    }
+
+    /// <summary>Swiping when target has blocked actor throws <see cref="InvalidOperationException"/>.</summary>
+    [Fact]
+    public async Task Like_BlockedUser_TargetBlockedActor_Throws_InvalidOperationException()
+    {
+        FakeBlockChecker blockChecker = new();
+        blockChecker.SeedBlock(TargetId.Value, ActorId.Value);
+        (RecordSwipeService svc, _, _, _, _) = Build(blockChecker: blockChecker);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            svc.RecordAsync(
+                new RecordSwipeRequest(ActorId, TargetId, SwipeActionType.Like),
+                CancellationToken.None));
     }
 }
 
