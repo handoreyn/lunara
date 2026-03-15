@@ -15,23 +15,24 @@ public sealed class RecordSwipeServiceTests
     private static readonly UserId ActorId = new(new Guid("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"));
     private static readonly UserId TargetId = new(new Guid("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"));
 
-    private static (RecordSwipeService Svc, FakeLikeRepository Likes, FakeMatchRepository Matches, FakeUnitOfWork Uow, FakeOutboxWriter Outbox)
-        Build(FakeLikeRepository? likes = null)
+    private static (RecordSwipeService Svc, FakeLikeRepository Likes, FakeMatchRepository Matches, FakeUnitOfWork Uow, FakeOutboxWriter Outbox, FakeBlockChecker BlockChecker)
+        Build(FakeLikeRepository? likes = null, FakeBlockChecker? blockChecker = null)
     {
         FakeLikeRepository likeRepo = likes ?? new FakeLikeRepository();
         FakeMatchRepository matchRepo = new();
         FakeUnitOfWork uow = new();
         FakeClock clock = new(FixedNow);
         FakeOutboxWriter outbox = new();
-        RecordSwipeService svc = new(likeRepo, matchRepo, uow, clock, outbox);
-        return (svc, likeRepo, matchRepo, uow, outbox);
+        FakeBlockChecker checker = blockChecker ?? new FakeBlockChecker();
+        RecordSwipeService svc = new(likeRepo, matchRepo, uow, clock, outbox, checker);
+        return (svc, likeRepo, matchRepo, uow, outbox, checker);
     }
 
     /// <summary>A non-reciprocal like records a like and saves once, no match is created.</summary>
     [Fact]
     public async Task Like_NonReciprocal_RecordsLike_NoMatch_SavesOnce()
     {
-        (RecordSwipeService svc, FakeLikeRepository likes, FakeMatchRepository matches, FakeUnitOfWork uow, FakeOutboxWriter outbox) = Build();
+        (RecordSwipeService svc, FakeLikeRepository likes, FakeMatchRepository matches, FakeUnitOfWork uow, FakeOutboxWriter outbox, _) = Build();
 
         RecordSwipeResult result = await svc.RecordAsync(
             new RecordSwipeRequest(ActorId, TargetId, SwipeActionType.Like),
@@ -52,7 +53,7 @@ public sealed class RecordSwipeServiceTests
     {
         FakeLikeRepository likes = new();
         likes.SeedLike(TargetId, ActorId);
-        (RecordSwipeService svc, _, FakeMatchRepository matches, FakeUnitOfWork uow, _) = Build(likes);
+        (RecordSwipeService svc, _, FakeMatchRepository matches, FakeUnitOfWork uow, _, _) = Build(likes);
 
         RecordSwipeResult result = await svc.RecordAsync(
             new RecordSwipeRequest(ActorId, TargetId, SwipeActionType.Like),
@@ -71,7 +72,7 @@ public sealed class RecordSwipeServiceTests
     {
         FakeLikeRepository likes = new();
         likes.SeedLike(ActorId, TargetId);
-        (RecordSwipeService svc, _, FakeMatchRepository matches, FakeUnitOfWork uow, FakeOutboxWriter outbox) = Build(likes);
+        (RecordSwipeService svc, _, FakeMatchRepository matches, FakeUnitOfWork uow, FakeOutboxWriter outbox, _) = Build(likes);
 
         RecordSwipeResult result = await svc.RecordAsync(
             new RecordSwipeRequest(ActorId, TargetId, SwipeActionType.Like),
@@ -89,7 +90,7 @@ public sealed class RecordSwipeServiceTests
     [Fact]
     public async Task Pass_NoCalls_NoSave()
     {
-        (RecordSwipeService svc, FakeLikeRepository likes, FakeMatchRepository matches, FakeUnitOfWork uow, FakeOutboxWriter outbox) = Build();
+        (RecordSwipeService svc, FakeLikeRepository likes, FakeMatchRepository matches, FakeUnitOfWork uow, FakeOutboxWriter outbox, _) = Build();
 
         RecordSwipeResult result = await svc.RecordAsync(
             new RecordSwipeRequest(ActorId, TargetId, SwipeActionType.Pass),
@@ -108,7 +109,7 @@ public sealed class RecordSwipeServiceTests
     [Fact]
     public async Task SameUser_Throws_ArgumentException()
     {
-        (RecordSwipeService svc, _, _, _, _) = Build();
+        (RecordSwipeService svc, _, _, _, _, _) = Build();
 
         await Assert.ThrowsAsync<ArgumentException>(() =>
             svc.RecordAsync(
@@ -122,7 +123,7 @@ public sealed class RecordSwipeServiceTests
     {
         FakeLikeRepository likes = new();
         likes.SeedLike(TargetId, ActorId);
-        (RecordSwipeService svc, _, _, _, FakeOutboxWriter outbox) = Build(likes);
+        (RecordSwipeService svc, _, _, _, FakeOutboxWriter outbox, _) = Build(likes);
 
         RecordSwipeResult result = await svc.RecordAsync(
             new RecordSwipeRequest(ActorId, TargetId, SwipeActionType.Like),
@@ -140,7 +141,7 @@ public sealed class RecordSwipeServiceTests
     {
         FakeLikeRepository likes = new();
         likes.SeedLike(TargetId, ActorId);
-        (RecordSwipeService svc, _, _, _, FakeOutboxWriter outbox) = Build(likes);
+        (RecordSwipeService svc, _, _, _, FakeOutboxWriter outbox, _) = Build(likes);
 
         await svc.RecordAsync(
             new RecordSwipeRequest(ActorId, TargetId, SwipeActionType.Like)
@@ -156,7 +157,7 @@ public sealed class RecordSwipeServiceTests
     [Fact]
     public async Task Like_NonReciprocal_DoesNotEnqueueOutboxMessage()
     {
-        (RecordSwipeService svc, _, _, _, FakeOutboxWriter outbox) = Build();
+        (RecordSwipeService svc, _, _, _, FakeOutboxWriter outbox, _) = Build();
 
         await svc.RecordAsync(
             new RecordSwipeRequest(ActorId, TargetId, SwipeActionType.Like),
@@ -171,7 +172,7 @@ public sealed class RecordSwipeServiceTests
     {
         FakeLikeRepository likes = new();
         likes.SeedLike(ActorId, TargetId);
-        (RecordSwipeService svc, _, _, _, FakeOutboxWriter outbox) = Build(likes);
+        (RecordSwipeService svc, _, _, _, FakeOutboxWriter outbox, _) = Build(likes);
 
         await svc.RecordAsync(
             new RecordSwipeRequest(ActorId, TargetId, SwipeActionType.Like),
@@ -184,7 +185,7 @@ public sealed class RecordSwipeServiceTests
     [Fact]
     public async Task Pass_DoesNotEnqueueOutboxMessage()
     {
-        (RecordSwipeService svc, _, _, _, FakeOutboxWriter outbox) = Build();
+        (RecordSwipeService svc, _, _, _, FakeOutboxWriter outbox, _) = Build();
 
         await svc.RecordAsync(
             new RecordSwipeRequest(ActorId, TargetId, SwipeActionType.Pass),

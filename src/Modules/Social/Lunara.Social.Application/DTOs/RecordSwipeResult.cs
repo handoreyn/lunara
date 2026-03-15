@@ -10,7 +10,11 @@ namespace Lunara.Social.Application.DTOs;
 /// <param name="MatchId">
 ///   The identifier of the newly created match, or <c>null</c> when no match was formed.
 /// </param>
+/// <param name="Blocked">
+///   <c>true</c> when the like was rejected because a block exists in either direction between the users.
+/// </param>
 public sealed record RecordSwipeResult(
     bool LikeRecorded,
     bool MatchCreated,
-    Guid? MatchId);
+    Guid? MatchId,
+    bool Blocked = false);
