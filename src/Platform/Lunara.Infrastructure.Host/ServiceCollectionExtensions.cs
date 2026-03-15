@@ -5,6 +5,7 @@ using Lunara.Moderation.Application.UseCases;
 using Lunara.Social.Application.Ports;
 using Lunara.Social.Application.UseCases;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using SocialIClock = Lunara.Social.Application.Ports.IClock;
 using BuildingBlocksIClock = Lunara.BuildingBlocks.Clocks.IClock;
 using BuildingBlocksSystemClock = Lunara.BuildingBlocks.Clocks.SystemClock;
@@ -41,8 +42,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<RecordSwipeService>();
 
         // --- Moderation module ---
-        // Shared wall-clock from BuildingBlocks used by Moderation services.
-        services.AddSingleton<BuildingBlocksIClock, BuildingBlocksSystemClock>();
+        // Use TryAddSingleton so AddLunaraPlatform's IClock registration takes precedence
+        // if called first; this avoids registering a second clock instance.
+        services.TryAddSingleton<BuildingBlocksIClock, BuildingBlocksSystemClock>();
 
         // Scoped: EF Core repositories share the scoped DbContext.
         services.AddScoped<ModerationIBlockRepository, EfBlockRepository>();

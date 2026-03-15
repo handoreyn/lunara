@@ -3,6 +3,7 @@ using Lunara.Api.Social;
 using Lunara.Infrastructure.Host;
 using Lunara.Moderation.Application.DTOs;
 using Lunara.Moderation.Application.UseCases;
+using Lunara.Moderation.Domain.Entities;
 using Lunara.Social.Application.DTOs;
 using Lunara.Social.Application.UseCases;
 using Lunara.Social.Domain;
@@ -125,10 +126,18 @@ app.MapPost("/v1/moderation/report", async (
         return Results.BadRequest("reason must not be empty.");
     }
 
+    // Assign to a non-nullable local; IsNullOrWhiteSpace guard above proves non-null.
+    string reason = body.Reason;
+
+    if (reason.Length > Report.MaxReasonLength)
+    {
+        return Results.BadRequest($"reason must not exceed {Report.MaxReasonLength} characters.");
+    }
+
     ReportUserRequest request = new(
         new ModerationUserId(reporterGuid),
         new ModerationUserId(body.TargetUserId),
-        body.Reason,
+        reason,
         body.Details);
 
     ReportUserResult result = await svc.ReportAsync(request, ct).ConfigureAwait(false);

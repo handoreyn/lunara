@@ -1,5 +1,6 @@
 using Lunara.BuildingBlocks.Clocks;
 using Lunara.Moderation.Application.DTOs;
+using Lunara.Moderation.Application.Exceptions;
 using Lunara.Moderation.Application.Ports;
 using Lunara.Moderation.Domain.Entities;
 
@@ -39,7 +40,7 @@ public sealed class BlockUserService(
                 nameof(request));
         }
 
-        // Duplicate block is a no-op.
+        // Fast path: avoid a DB write for the common case where a block already exists.
         bool alreadyBlocked = await blockRepository.ExistsAsync(
             request.BlockerUserId, request.BlockedUserId, ct)
             .ConfigureAwait(false);
@@ -51,7 +52,17 @@ public sealed class BlockUserService(
 
         Block block = Block.Create(request.BlockerUserId, request.BlockedUserId, clock.UtcNow);
         await blockRepository.AddAsync(block, ct).ConfigureAwait(false);
-        await unitOfWork.SaveChangesAsync(ct).ConfigureAwait(false);
+
+        try
+        {
+            await unitOfWork.SaveChangesAsync(ct).ConfigureAwait(false);
+        }
+        catch (DuplicateEntityException)
+        {
+            // A concurrent request inserted the same block between our ExistsAsync check
+            // and this SaveChangesAsync.  Treat as no-op — the block already exists.
+            return new BlockUserResult(BlockCreated: false);
+        }
 
         return new BlockUserResult(BlockCreated: true);
     }
