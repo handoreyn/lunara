@@ -3,8 +3,7 @@ using Lunara.Messaging.Application.Ports;
 namespace Lunara.Infrastructure.Host.Messaging;
 
 /// <summary>
-/// Production implementation of <see cref="IClock"/> for the Messaging module.
-/// Delegates to <see cref="DateTimeOffset.UtcNow"/>.
+/// Production implementation of <see cref="IClock"/> that delegates to <see cref="DateTimeOffset.UtcNow"/>.
 /// </summary>
 internal sealed class MessagingSystemClock : IClock
 {

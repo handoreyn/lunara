@@ -7,6 +7,7 @@ builder.Services.AddLunaraPlatform(builder.Configuration);
 builder.Services.AddLunaraModules();
 builder.Services.AddHostedService<LunaraWorker>();
 builder.Services.AddHostedService<OutboxPublisherHostedService>();
+builder.Services.AddHostedService<KafkaConsumerHostedService>();
 
 IHost host = builder.Build();
 await host.RunAsync().ConfigureAwait(false);

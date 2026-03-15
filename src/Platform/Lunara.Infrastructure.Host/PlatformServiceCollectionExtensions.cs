@@ -1,6 +1,8 @@
 using Lunara.BuildingBlocks.Clocks;
+using Lunara.BuildingBlocks.Inbox;
 using Lunara.BuildingBlocks.Kafka;
 using Lunara.BuildingBlocks.Outbox;
+using Lunara.Infrastructure.Host.Inbox;
 using Lunara.Infrastructure.Host.Kafka;
 using Lunara.Infrastructure.Host.Options;
 using Lunara.Infrastructure.Host.Outbox;
@@ -25,6 +27,7 @@ public static class PlatformServiceCollectionExtensions
     ///   <item><see cref="LunaraDbContext"/> using the Npgsql provider.</item>
     ///   <item><see cref="IOutboxWriter"/> implemented by <c>EfOutboxWriter</c>.</item>
     ///   <item><see cref="IOutboxPoller"/> implemented by <c>EfOutboxPoller</c>.</item>
+    ///   <item><see cref="IInboxStore"/> implemented by <c>EfInboxStore</c>.</item>
     ///   <item><see cref="IKafkaProducer"/> implemented by <c>KafkaProducer</c>.</item>
     /// </list>
     /// </summary>
@@ -62,10 +65,14 @@ public static class PlatformServiceCollectionExtensions
                         maxRetryDelay: TimeSpan.FromSeconds(10),
                         errorCodesToAdd: null);
                 }));
+        // Register the base DbContext as a scoped alias so module repositories
+        // can inject DbContext without referencing LunaraDbContext directly.
+        services.AddScoped<DbContext>(sp => sp.GetRequiredService<LunaraDbContext>());
 
         // Scoped: depends on the scoped LunaraDbContext.
         services.AddScoped<IOutboxWriter, EfOutboxWriter>();
         services.AddScoped<IOutboxPoller, EfOutboxPoller>();
+        services.AddScoped<IInboxStore, EfInboxStore>();
         services.AddScoped<IDatabaseReadinessChecker, DatabaseReadinessChecker>();
 
         // Singleton: Confluent.Kafka producer is thread-safe and expensive to create.

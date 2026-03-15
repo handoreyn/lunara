@@ -193,7 +193,6 @@ public sealed class RecordSwipeServiceTests
 
         Assert.Equal(0, outbox.EnqueueCallCount);
     }
-
     /// <summary>Swiping on a blocked user throws <see cref="InvalidOperationException"/>.</summary>
     [Fact]
     public async Task Like_BlockedUser_ActorBlockedTarget_Throws_InvalidOperationException()

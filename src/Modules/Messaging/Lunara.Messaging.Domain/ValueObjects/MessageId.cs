@@ -1,6 +1,6 @@
 namespace Lunara.Messaging.Domain.ValueObjects;
 
-/// <summary>Strongly-typed identifier for a message.</summary>
+/// <summary>Strongly-typed identifier for a <see cref="Entities.Message"/>.</summary>
 public readonly record struct MessageId
 {
     /// <summary>The underlying <see cref="Guid"/> value.</summary>

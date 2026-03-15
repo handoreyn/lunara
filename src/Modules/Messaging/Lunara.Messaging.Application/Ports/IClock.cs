@@ -1,8 +1,8 @@
 namespace Lunara.Messaging.Application.Ports;
 
-/// <summary>Abstracts the system clock to allow deterministic time in tests.</summary>
+/// <summary>Abstraction over the system clock to allow deterministic testing.</summary>
 public interface IClock
 {
-    /// <summary>Gets the current UTC date and time.</summary>
+    /// <summary>Gets the current UTC time.</summary>
     DateTimeOffset UtcNow { get; }
 }

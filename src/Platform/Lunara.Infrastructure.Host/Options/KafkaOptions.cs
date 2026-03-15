@@ -17,4 +17,10 @@ public sealed class KafkaOptions
     /// (e.g. <c>"lunara."</c>).
     /// </summary>
     public string TopicPrefix { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the Kafka consumer group identifier used by all consumers
+    /// in this application instance (e.g. <c>"lunara-worker"</c>).
+    /// </summary>
+    public string ConsumerGroupId { get; set; } = "lunara-worker";
 }

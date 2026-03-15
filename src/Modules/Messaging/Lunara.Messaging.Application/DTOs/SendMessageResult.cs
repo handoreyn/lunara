@@ -1,5 +1,8 @@
 namespace Lunara.Messaging.Application.DTOs;
 
-/// <summary>Result of the send-message use case.</summary>
+/// <summary>Output of the <see cref="UseCases.SendMessageService.SendAsync"/> use-case.</summary>
+/// <param name="ConversationId">The identifier of the conversation the message was added to.</param>
 /// <param name="MessageId">The identifier of the newly created message.</param>
-public sealed record SendMessageResult(Guid MessageId);
+public sealed record SendMessageResult(
+    Guid ConversationId,
+    Guid MessageId);

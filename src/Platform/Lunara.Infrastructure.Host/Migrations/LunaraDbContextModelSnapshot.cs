@@ -8,120 +8,248 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Lunara.Infrastructure.Host.Migrations;
-
-[DbContext(typeof(LunaraDbContext))]
-partial class LunaraDbContextModelSnapshot : ModelSnapshot
+namespace Lunara.Infrastructure.Host.Migrations
 {
-    protected override void BuildModel(ModelBuilder modelBuilder)
+    [DbContext(typeof(LunaraDbContext))]
+    partial class LunaraDbContextModelSnapshot : ModelSnapshot
     {
+        protected override void BuildModel(ModelBuilder modelBuilder)
+        {
 #pragma warning disable 612, 618
-        modelBuilder
-            .HasAnnotation("ProductVersion", "9.0.1")
-            .HasAnnotation("Relational:MaxIdentifierLength", 63);
+            modelBuilder
+                .HasAnnotation("ProductVersion", "9.0.1")
+                .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
-        NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-        modelBuilder.Entity("Lunara.Infrastructure.Host.Persistence.OutboxMessageEntity", b =>
-            {
-                b.Property<Guid>("Id")
-                    .ValueGeneratedOnAdd()
-                    .HasColumnType("uuid");
+            modelBuilder.Entity("Lunara.Infrastructure.Host.Persistence.InboxMessageEntity", b =>
+                {
+                    b.Property<string>("Consumer")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
-                b.Property<int>("Attempts")
-                    .HasColumnType("integer");
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("uuid");
 
-                b.Property<string>("EventType")
-                    .IsRequired()
-                    .HasMaxLength(256)
-                    .HasColumnType("character varying(256)");
+                    b.Property<DateTimeOffset?>("ProcessedAtUtc")
+                        .HasColumnType("timestamp with time zone");
 
-                b.Property<string>("LastError")
-                    .HasMaxLength(2000)
-                    .HasColumnType("character varying(2000)");
+                    b.Property<DateTimeOffset>("ReceivedAtUtc")
+                        .HasColumnType("timestamp with time zone");
 
-                b.Property<DateTimeOffset?>("LockedUntilUtc")
-                    .HasColumnType("timestamp with time zone");
+                    b.HasKey("Consumer", "EventId");
 
-                b.Property<DateTimeOffset>("OccurredAtUtc")
-                    .HasColumnType("timestamp with time zone");
+                    b.HasIndex("ProcessedAtUtc")
+                        .HasDatabaseName("ix_inbox_processed_at");
 
-                b.Property<string>("PayloadJson")
-                    .IsRequired()
-                    .HasColumnType("text");
+                    b.HasIndex("Consumer", "EventId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_inbox_consumer_event_id");
 
-                b.Property<int>("Status")
-                    .HasColumnType("integer");
+                    b.ToTable("inbox_messages", (string)null);
+                });
 
-                b.HasKey("Id");
+            modelBuilder.Entity("Lunara.Infrastructure.Host.Persistence.OutboxMessageEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
 
-                b.HasIndex("LockedUntilUtc")
-                    .HasDatabaseName("ix_outbox_locked_until");
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer");
 
-                b.HasIndex("Status", "OccurredAtUtc")
-                    .HasDatabaseName("ix_outbox_status_occurred");
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
 
-                b.ToTable("OutboxMessages");
-            });
+                    b.Property<string>("LastError")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
 
-        modelBuilder.Entity("Lunara.Moderation.Infrastructure.Persistence.BlockEntity", b =>
-            {
-                b.Property<Guid>("Id")
-                    .ValueGeneratedOnAdd()
-                    .HasColumnType("uuid");
+                    b.Property<DateTimeOffset?>("LockedUntilUtc")
+                        .HasColumnType("timestamp with time zone");
 
-                b.Property<Guid>("BlockedUserId")
-                    .HasColumnType("uuid");
+                    b.Property<DateTimeOffset>("OccurredAtUtc")
+                        .HasColumnType("timestamp with time zone");
 
-                b.Property<Guid>("BlockerUserId")
-                    .HasColumnType("uuid");
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasColumnType("text");
 
-                b.Property<DateTimeOffset>("CreatedAtUtc")
-                    .HasColumnType("timestamp with time zone");
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
 
-                b.HasKey("Id");
+                    b.HasKey("Id");
 
-                b.HasIndex("BlockedUserId")
-                    .HasDatabaseName("ix_moderation_blocks_blocked");
+                    b.HasIndex("LockedUntilUtc")
+                        .HasDatabaseName("ix_outbox_locked_until");
 
-                b.HasIndex("BlockerUserId", "BlockedUserId")
-                    .IsUnique()
-                    .HasDatabaseName("ix_moderation_blocks_blocker_blocked");
+                    b.HasIndex("Status", "OccurredAtUtc")
+                        .HasDatabaseName("ix_outbox_status_occurred");
 
-                b.ToTable("moderation_blocks");
-            });
+                    b.ToTable("OutboxMessages");
+                });
 
-        modelBuilder.Entity("Lunara.Moderation.Infrastructure.Persistence.ReportEntity", b =>
-            {
-                b.Property<Guid>("Id")
-                    .ValueGeneratedOnAdd()
-                    .HasColumnType("uuid");
+            modelBuilder.Entity("Lunara.Messaging.Infrastructure.Persistence.ConversationEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
 
-                b.Property<DateTimeOffset>("CreatedAtUtc")
-                    .HasColumnType("timestamp with time zone");
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
 
-                b.Property<string>("Details")
-                    .HasMaxLength(1000)
-                    .HasColumnType("character varying(1000)");
+                    b.Property<Guid>("MatchId")
+                        .HasColumnType("uuid");
 
-                b.Property<string>("Reason")
-                    .IsRequired()
-                    .HasMaxLength(1000)
-                    .HasColumnType("character varying(1000)");
+                    b.Property<Guid>("User1Id")
+                        .HasColumnType("uuid");
 
-                b.Property<Guid>("ReporterUserId")
-                    .HasColumnType("uuid");
+                    b.Property<Guid>("User2Id")
+                        .HasColumnType("uuid");
 
-                b.Property<Guid>("TargetUserId")
-                    .HasColumnType("uuid");
+                    b.HasKey("Id");
 
-                b.HasKey("Id");
+                    b.HasIndex("MatchId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_messaging_conversations_match_id");
 
-                b.HasIndex("TargetUserId")
-                    .HasDatabaseName("ix_moderation_reports_target");
+                    b.ToTable("messaging_conversations", (string)null);
+                });
 
-                b.ToTable("moderation_reports");
-            });
+            modelBuilder.Entity("Lunara.Messaging.Infrastructure.Persistence.MessageEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ConversationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RecipientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SenderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("SentAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConversationId")
+                        .HasDatabaseName("ix_messaging_messages_conversation_id");
+
+                    b.ToTable("messaging_messages", (string)null);
+                });
+
+            modelBuilder.Entity("Lunara.Moderation.Infrastructure.Persistence.BlockEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BlockedUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BlockerUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BlockedUserId")
+                        .HasDatabaseName("ix_moderation_blocks_blocked");
+
+                    b.HasIndex("BlockerUserId", "BlockedUserId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_moderation_blocks_blocker_blocked");
+
+                    b.ToTable("moderation_blocks");
+                });
+
+            modelBuilder.Entity("Lunara.Moderation.Infrastructure.Persistence.ReportEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Details")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("ReporterUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TargetUserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TargetUserId")
+                        .HasDatabaseName("ix_moderation_reports_target");
+
+                    b.ToTable("moderation_reports");
+                });
+
+            modelBuilder.Entity("Lunara.Notifications.Infrastructure.Persistence.NotificationEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("ReadAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "CreatedAtUtc")
+                        .IsDescending(false, true)
+                        .HasDatabaseName("ix_notifications_user_id_created_at");
+
+                    b.ToTable("notifications_notifications", (string)null);
+                });
+
+            modelBuilder.Entity("Lunara.Messaging.Infrastructure.Persistence.MessageEntity", b =>
+                {
+                    b.HasOne("Lunara.Messaging.Infrastructure.Persistence.ConversationEntity", "Conversation")
+                        .WithMany()
+                        .HasForeignKey("ConversationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Conversation");
+                });
 #pragma warning restore 612, 618
+        }
     }
 }
