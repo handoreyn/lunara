@@ -16,14 +16,14 @@ public sealed class RecordSwipeServiceTests
     private static readonly UserId TargetId = new(new Guid("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"));
 
     private static (RecordSwipeService Svc, FakeLikeRepository Likes, FakeMatchRepository Matches, FakeUnitOfWork Uow, FakeOutboxWriter Outbox)
-        Build(FakeLikeRepository? likes = null)
+        Build(FakeLikeRepository? likes = null, FakeBlockChecker? blockChecker = null)
     {
         FakeLikeRepository likeRepo = likes ?? new FakeLikeRepository();
         FakeMatchRepository matchRepo = new();
         FakeUnitOfWork uow = new();
         FakeClock clock = new(FixedNow);
         FakeOutboxWriter outbox = new();
-        RecordSwipeService svc = new(likeRepo, matchRepo, uow, clock, outbox);
+        RecordSwipeService svc = new(likeRepo, matchRepo, uow, clock, outbox, blockChecker ?? new FakeBlockChecker());
         return (svc, likeRepo, matchRepo, uow, outbox);
     }
 
@@ -191,6 +191,42 @@ public sealed class RecordSwipeServiceTests
             CancellationToken.None);
 
         Assert.Equal(0, outbox.EnqueueCallCount);
+    }
+
+    // ── Block enforcement ──────────────────────────────────────────────────
+
+    [Fact]
+    public async Task Like_WhenBlockedInActorDirection_ReturnsNoOpResult()
+    {
+        FakeBlockChecker blockChecker = new();
+        blockChecker.SetBlocked(ActorId.Value, TargetId.Value);
+        (RecordSwipeService svc, FakeLikeRepository likes, _, FakeUnitOfWork uow, _) = Build(blockChecker: blockChecker);
+
+        RecordSwipeResult result = await svc.RecordAsync(
+            new RecordSwipeRequest(ActorId, TargetId, SwipeActionType.Like),
+            CancellationToken.None);
+
+        Assert.False(result.LikeRecorded);
+        Assert.False(result.MatchCreated);
+        Assert.Equal(0, likes.AddLikeCallCount);
+        Assert.Equal(0, uow.SaveCallCount);
+    }
+
+    [Fact]
+    public async Task Like_WhenBlockedInTargetDirection_ReturnsNoOpResult()
+    {
+        FakeBlockChecker blockChecker = new();
+        blockChecker.SetBlocked(TargetId.Value, ActorId.Value);
+        (RecordSwipeService svc, FakeLikeRepository likes, _, FakeUnitOfWork uow, _) = Build(blockChecker: blockChecker);
+
+        RecordSwipeResult result = await svc.RecordAsync(
+            new RecordSwipeRequest(ActorId, TargetId, SwipeActionType.Like),
+            CancellationToken.None);
+
+        Assert.False(result.LikeRecorded);
+        Assert.False(result.MatchCreated);
+        Assert.Equal(0, likes.AddLikeCallCount);
+        Assert.Equal(0, uow.SaveCallCount);
     }
 }
 

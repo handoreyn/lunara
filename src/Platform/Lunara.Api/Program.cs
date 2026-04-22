@@ -1,9 +1,12 @@
 using Lunara.Api.Messaging;
+using Lunara.Api.Moderation;
 using Lunara.Api.Social;
 using Lunara.Infrastructure.Host;
 using Lunara.Messaging.Application.DTOs;
 using Lunara.Messaging.Application.Exceptions;
 using Lunara.Messaging.Application.UseCases;
+using Lunara.Moderation.Application.DTOs;
+using Lunara.Moderation.Application.UseCases;
 using Lunara.Social.Application.DTOs;
 using Lunara.Social.Application.UseCases;
 using Lunara.Social.Domain;
@@ -114,6 +117,77 @@ app.MapPost("/v1/messaging/send", async (
     catch (MatchNotFoundException)
     {
         return Results.BadRequest("Match not found.");
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(ex.Message);
+    }
+});
+
+app.MapPost("/v1/moderation/block", async (
+    HttpContext http,
+    BlockBody body,
+    BlockUserService svc,
+    CancellationToken ct) =>
+{
+    string? userIdHeader = http.Request.Headers["X-User-Id"];
+
+    if (string.IsNullOrEmpty(userIdHeader)
+        || !Guid.TryParse(userIdHeader, out Guid blockerGuid)
+        || blockerGuid == Guid.Empty)
+    {
+        return Results.BadRequest("Missing or invalid X-User-Id header.");
+    }
+
+    if (body.TargetUserId == Guid.Empty)
+    {
+        return Results.BadRequest("targetUserId must not be empty.");
+    }
+
+    BlockUserRequest request = new(blockerGuid, body.TargetUserId);
+
+    try
+    {
+        BlockUserResult result = await svc.BlockAsync(request, ct).ConfigureAwait(false);
+        return Results.Ok(result);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(ex.Message);
+    }
+});
+
+app.MapPost("/v1/moderation/report", async (
+    HttpContext http,
+    ReportBody body,
+    ReportUserService svc,
+    CancellationToken ct) =>
+{
+    string? userIdHeader = http.Request.Headers["X-User-Id"];
+
+    if (string.IsNullOrEmpty(userIdHeader)
+        || !Guid.TryParse(userIdHeader, out Guid reporterGuid)
+        || reporterGuid == Guid.Empty)
+    {
+        return Results.BadRequest("Missing or invalid X-User-Id header.");
+    }
+
+    if (body.TargetUserId == Guid.Empty)
+    {
+        return Results.BadRequest("targetUserId must not be empty.");
+    }
+
+    if (string.IsNullOrWhiteSpace(body.Reason))
+    {
+        return Results.BadRequest("reason must not be empty.");
+    }
+
+    ReportUserRequest request = new(reporterGuid, body.TargetUserId, body.Reason, body.Details);
+
+    try
+    {
+        ReportUserResult result = await svc.ReportAsync(request, ct).ConfigureAwait(false);
+        return Results.Ok(result);
     }
     catch (ArgumentException ex)
     {
